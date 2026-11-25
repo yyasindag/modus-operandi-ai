@@ -1,3 +1,4 @@
+import json
 import random
 import os, re, glob, time, operator, fitz, requests
 from flask import Flask, render_template, request, session
@@ -346,6 +347,8 @@ if os.path.exists("kutuphane_indeks.json"):
     ONCELIKLI_SAYFALAR = _d.get("oncelikli", [])
     DIGER_SAYFALAR = _d.get("diger", [])
 
-if __name__ == '__main__':
     kitaplari_indeksle()
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
