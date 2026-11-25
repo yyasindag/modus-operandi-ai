@@ -148,7 +148,7 @@ def yanit_olustur(soru, gecmis):
     sistem = "Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Normal sorularda metin içinde PDF adı veya sayfa numarası yazma."
     son_icerik = f"Kullanıcı Sorusu: {soru}\n\n[KÜTÜPHANE VERİLERİ]:\n{kitap_baglam}\n\n[ONAYLI HAKEMLİ MAKALELER (DOI REFERANSLI)]:\n{akad_metin}"
     cevap = gemini_bulut_sor(gecmis, sistem, son_icerik) or openrouter_bulut_sor(gecmis, sistem, son_icerik)
-    return (cevap, kaynaklar) if cevap else ("⚠️ Bulut sunucularında anlık yoğunluk var, lütfen birkaç saniye sonra tekrar deneyin.", [])
+    return (cevap, kaynaklar) if cevap else ("⚠️ API Durumu: Anahtar kontrol ediliyor. Lütfen Render Environment Variables kısmını doğrulayın.", [])
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
