@@ -88,7 +88,7 @@ def openalex_ve_crossref_ara(kelimeler):
     s = chr(47)
     try:
         oa_url = f"https:{s}{s}api.openalex.org{s}works?search={requests.utils.quote(sorgu_en)}&filter=has_doi:true,publication_year:2018-2026&sort=cited_by_count:desc&per-page=5"
-        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@eksimaya.ai"}, timeout=25)
+        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@eksimaya.ai"}, timeout=10)
         if res.status_code == 200:
             for item in res.json().get("results", []):
                 baslik = item.get("title") or "Akademik Yayın"
@@ -114,7 +114,7 @@ def gemini_bulut_sor(gecmis, sistem, son_icerik):
     mesajlar.append({"role": "user", "parts": [{"text": son_icerik}]})
     for m in GEMINI_MODELLER:
         try:
-            res = requests.post(base_url + m + ":generateContent", headers=headers, json={"contents": mesajlar, "systemInstruction": {"parts": [{"text": sistem}]}, "generationConfig": {"temperature": 0.2}}, timeout=25)
+            res = requests.post(base_url + m + ":generateContent", headers=headers, json={"contents": mesajlar, "systemInstruction": {"parts": [{"text": sistem}]}, "generationConfig": {"temperature": 0.2}}, timeout=10)
             if res.status_code == 200:
                 return next(iter(next(iter(res.json().get("candidates", []))).get("content", {}).get("parts", []))).get("text")
         except Exception: continue
@@ -128,7 +128,7 @@ def openrouter_bulut_sor(gecmis, sistem, son_icerik):
     mesajlar = [{"role": "system", "content": sistem}] + [{"role": "assistant" if m["role"] == "model" else "user", "content": m["text"]} for m in gecmis[-6:]] + [{"role": "user", "content": son_icerik}]
     for m_or in ["meta-llama/llama-3.3-70b-instruct:free", "google/gemma-3-27b-it:free", "qwen/qwen3-32b:free", "openrouter/free"]:
         try:
-            res = requests.post(url, headers=headers, json={"model": m_or, "messages": mesajlar, "temperature": 0.2}, timeout=25)
+            res = requests.post(url, headers=headers, json={"model": m_or, "messages": mesajlar, "temperature": 0.2}, timeout=10)
             if res.status_code == 200:
                 return next(iter(res.json().get("choices", []))).get("message", {}).get("content")
         except Exception as _err:
@@ -370,7 +370,7 @@ def ai_yanit_olustur(soru, gecmis):
     if g_key.startswith("AIza"):
         for m in ["gemini-2.5-flash", "gemini-2.0-flash"]:
             try:
-                r = requests.post(f"https://googleapis.com{m}:generateContent?key={g_key}", json={"contents": [{"parts": [{"text": sistem + "\n\nSoru: " + soru}]}]}, timeout=20)
+                r = requests.post(f"https://googleapis.com{m}:generateContent?key={g_key}", json={"contents": [{"parts": [{"text": sistem + "\n\nSoru: " + soru}]}]}, timeout=10)
                 if r.status_code == 200:
                     return r.json()["candidates"][0]["content"]["parts"][0]["text"], kaynaklar
                 hatalar.append(f"Gemini({m}): {r.status_code}")
@@ -379,7 +379,7 @@ def ai_yanit_olustur(soru, gecmis):
     if o_key:
         for m in ["openrouter/free", "google/gemma-3-27b-it:free", "meta-llama/llama-3.3-70b-instruct:free"]:
             try:
-                r = requests.post("https://openrouter.ai", headers={"Authorization": f"Bearer {o_key}", "Content-Type": "application/json"}, json={"model": m, "messages": [{"role": "system", "content": sistem}, {"role": "user", "content": soru}]}, timeout=20)
+                r = requests.post("https://openrouter.ai", headers={"Authorization": f"Bearer {o_key}", "Content-Type": "application/json"}, json={"model": m, "messages": [{"role": "system", "content": sistem}, {"role": "user", "content": soru}]}, timeout=10)
                 if r.status_code == 200:
                     return r.json()["choices"][0]["message"]["content"], kaynaklar
                 hatalar.append(f"OR({m}): {r.status_code}")
@@ -404,7 +404,7 @@ def ai_yanit_olustur(soru, gecmis):
     if o_key.startswith("sk-"):
         for m in ["openrouter/free", "google/gemma-3-27b-it:free", "meta-llama/llama-3.3-70b-instruct:free", "mistralai/mistral-small-3.1-24b-instruct:free"]:
             try:
-                r = requests.post("https://openrouter.ai", headers={"Authorization": f"Bearer {o_key}", "Content-Type": "application/json"}, json={"model": m, "messages": [{"role": "system", "content": sistem}, {"role": "user", "content": soru}]}, timeout=25)
+                r = requests.post("https://openrouter.ai", headers={"Authorization": f"Bearer {o_key}", "Content-Type": "application/json"}, json={"model": m, "messages": [{"role": "system", "content": sistem}, {"role": "user", "content": soru}]}, timeout=10)
                 if r.status_code == 200:
                     return r.json()["choices"]["message"]["content"], kaynaklar
                 hatalar.append(f"OR({m}): {r.status_code}")
@@ -412,7 +412,7 @@ def ai_yanit_olustur(soru, gecmis):
                 hatalar.append(f"OR: {e}")
     if g_key.startswith("AIza"):
         try:
-            r = requests.post(f"https://googleapis.com{g_key}", json={"contents": [{"parts": [{"text": sistem + "\n\nSoru: " + soru}]}]}, timeout=25)
+            r = requests.post(f"https://googleapis.com{g_key}", json={"contents": [{"parts": [{"text": sistem + "\n\nSoru: " + soru}]}]}, timeout=10)
             if r.status_code == 200:
                 return r.json()["candidates"]["content"]["parts"]["text"], kaynaklar
             hatalar.append(f"Gemini: {r.status_code}")
