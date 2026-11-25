@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modus Operandi PRO</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#fff;color:#1a1a18;line-height:1.6}
+.topbar{height:56px;padding:0 20px;border-bottom:1px solid #e5e5e0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(255,255,255,0.95);z-index:10}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
+.logo{width:28px;height:28px;border-radius:8px;background:#2c2219;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+.tag{background:linear-gradient(135deg,#c99a38,#996e17);color:#fff;font-size:11px;padding:3px 9px;border-radius:12px;font-weight:600}
+.back{text-decoration:none;color:#6e6d68;font-size:13px;padding:6px 12px;border-radius:8px}
+.back:hover{background:#f7f7f5;color:#1a1a18}
+.intro{max-width:760px;margin:40px auto;padding:0 20px;text-align:center}
+.badge{display:inline-block;background:#f7f7f5;border:1px solid #e5e5e0;color:#8c6239;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:14px}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;text-align:left;margin:28px 0}
+.pcard{background:#fff;border:1px solid #e5e5e0;border-radius:18px;padding:24px;position:relative}
+.pcard.pro{background:#fbfaf7;border:2px solid #b8892a}
+.pbtn{display:block;text-align:center;text-decoration:none;padding:11px;border-radius:12px;font-size:14px;font-weight:600;margin-top:16px}
+.login-box{max-width:420px;margin:0 auto;background:#f7f7f5;border:1px solid #e5e5e0;border-radius:16px;padding:18px}
+.wrap{max-width:740px;margin:0 auto;padding:24px 16px 60px}
+.tabs{display:flex;gap:6px;background:#f4f3ef;padding:5px;border-radius:14px;margin-bottom:24px;overflow-x:auto}
+.tab-btn{flex:1;border:none;background:transparent;padding:10px 14px;border-radius:10px;font-size:13.5px;font-weight:600;color:#6e6d68;cursor:pointer;white-space:nowrap}
+.tab-btn.active{background:#fff;color:#1a1a18;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.btn-sm{background:#2c2219;color:#fff;border:none;padding:7px 14px;border-radius:20px;font-size:12.5px;font-weight:600;cursor:pointer}
+.btn-outline{background:#fff;color:#2c2219;border:1px solid #dcdbd5;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer}
+.item{border:1px solid #e5e5e0;border-radius:14px;margin-bottom:10px;overflow:hidden}
+.item-row{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:#fff}
+.item-detail{display:none;padding:16px;background:#f9f9f7;border-top:1px solid #ecebe6}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.pill{background:#fff;border:1px solid #e5e5e0;padding:6px 11px;border-radius:10px;font-size:13px}
+.recipe{background:#fff;border:1px solid #e5e5e0;border-radius:10px;padding:12px;font-size:13.5px;white-space:pre-line}
+.card-box{background:#f9f9f7;border:1px solid #e5e5e0;border-radius:16px;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+.fld label{display:block;font-size:12px;font-weight:600;color:#6e6d68;margin-bottom:4px}
+.fld input,.fld select,.fld textarea{width:100%;padding:9px 12px;border:1px solid #dcdbd5;border-radius:10px;font-size:14px;background:#fff;font-family:inherit}
+.ek-row{display:flex;gap:8px;margin-top:8px}
+.btn-full{margin-top:14px;width:100%;background:#2c2219;color:#fff;border:none;padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer}
+.step{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid #ecebe6}
+.tm{font-weight:700;color:#996e17;min-width:52px;font-size:13.5px}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="brand"><div class="logo">M</div><span>Modus Operandi</span><span class="tag">PRO</span>{% if session.get('pro_kullanici') %}<span style="font-size:12.5px;color:#6e6d68;font-weight:500">· {{ session.get('pro_kullanici') }}</span>{% endif %}</div><div style="display:flex;align-items:center;gap:8px;position:relative">
+    {% if not acik_panel %}
+    <button type="button" onclick="var m=document.getElementById('topLogin');m.style.display=(m.style.display==='block')?'none':'block'" style="background:#2c2219;color:#fff;border:none;padding:6px 14px;border-radius:18px;font-size:12.5px;font-weight:600;cursor:pointer">PRO Üye Girişi</button>
+    <div id="topLogin" style="display:{{ 'block' if hata else 'none' }};position:absolute;top:44px;right:0;width:270px;background:#fff;border:1px solid #e5e5e0;border-radius:14px;padding:14px;box-shadow:0 10px 28px rgba(0,0,0,0.09);z-index:50">
+        <div style="font-size:12.5px;font-weight:700;color:#1a1a18;margin-bottom:8px">Mevcut PRO Üyesi misiniz?</div>
+        {% if hata %}<div style="color:#a33b3b;font-size:11.5px;margin-bottom:6px">{{ hata }}</div>{% endif %}
+        <form action="/pro" method="POST" style="display:flex;flex-direction:column;gap:8px">
+            <input type="hidden" name="islem" value="giris">
+            <input type="text" name="kullanici_adi" placeholder="Kullanıcı veya İşletme Adı" style="padding:8px 10px;border:1px solid #dcdbd5;border-radius:8px;font-size:13px" required>
+            <input type="password" name="sifre" placeholder="Şifre" style="padding:8px 10px;border:1px solid #dcdbd5;border-radius:8px;font-size:13px" required>
+            <button type="submit" style="background:#2c2219;color:#fff;border:none;padding:8px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Giriş Yap</button>
+        </form>
+    </div>
+    {% endif %}
+    <div style="display:flex;gap:8px;align-items:center">{% if not acik_panel %}<button type="button" onclick="uyeOlAc('Yıllık ($190/yıl)')" style="background:#2c2219;color:#fff;border:none;padding:6px 14px;border-radius:18px;font-size:12.5px;font-weight:600;cursor:pointer">Üye Ol</button>{% endif %}<a href="/" class="back">← Asistana Dön</a></div>
+</div></div>
+{% if not acik_panel %}
+<div class="intro">
+<div class="badge">İŞLETME & PROFESYONEL MUTFAK</div>
+<h1 style="font-size:28px;margin-bottom:10px">Modus Operandi PRO Nedir?</h1>
+<p style="font-size:15px;color:#6e6d68;max-width:560px;margin:0 auto">Artizan fırınlar ve profesyonel üretim mutfakları için geliştirilmiş; <b>Günlük Ürün Takip Listesi</b>, <b>Fırıncı Matematiği Ölçekleyici</b> ve <b>Maya Besleme Döngüsü</b> araçlarını tek merkezde sunan işletme paketidir.</p>
+<div class="plans">
+<div class="pcard"><div style="font-size:12px;font-weight:700;color:#6e6d68">AYLIK PLAN</div><div style="font-size:30px;font-weight:800;margin:4px 0">$19 <span style="font-size:14px;font-weight:400;color:#6e6d68">/ ay</span></div><ul style="list-style:none;font-size:13.5px;line-height:2;margin-top:12px"><li>✓ Günlük Ürün & Reçete Listesi</li><li>✓ Dinamik Fırıncı Matematiği</li><li>✓ Saatlik Maya Besleme Takvimi</li></ul><button type="button" onclick="uyeOlAc('Aylık ($19/ay)')" class="pbtn" style="width:100%;background:#f7f7f5;border:1px solid #dcdbd5;color:#1a1a18;cursor:pointer">Aylık Planla Üye Ol</button></div>
+<div class="pcard pro"><span style="position:absolute;top:-11px;right:16px;background:#b8892a;color:#fff;font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px">2 AY ÜCRETSİZ</span><div style="font-size:12px;font-weight:700;color:#996e17">YILLIK İŞLETME PLANI</div><div style="font-size:30px;font-weight:800;margin:4px 0">$190 <span style="font-size:14px;font-weight:400;color:#6e6d68">/ yıl</span></div><ul style="list-style:none;font-size:13.5px;line-height:2;margin-top:12px"><li>✓ Tüm PRO Üretim & Reçete Modülleri</li><li>✓ Çoklu Tezgah & Ekip Kullanımı</li><li>✓ 12 Ay Sabit Fiyat Garantisi</li></ul><button type="button" onclick="uyeOlAc('Yıllık ($190/yıl)')" class="pbtn" style="width:100%;background:#2c2219;border:none;color:#fff;cursor:pointer">Yıllık Planla Üye Ol</button></div>
+</div>
+</div>
+{% else %}
+{% set aktif_sekme = request.args.get('tab', 'liste') %}
+<div class="wrap">
+<div class="tabs"><button type="button" class="tab-btn {% if aktif_sekme == 'liste' %}active{% endif %}" onclick="sekmeAc('liste', this)">Günlük Ürün Listesi</button><button type="button" class="tab-btn {% if aktif_sekme == 'matematik' %}active{% endif %}" onclick="sekmeAc('matematik', this)">Fırıncı Matematiği</button><button type="button" class="tab-btn {% if aktif_sekme == 'maya' %}active{% endif %}" onclick="sekmeAc('maya', this)">Maya Besleme Döngüsü</button></div>
+<div id="tab-liste" class="tab-pane {% if aktif_sekme == 'liste' %}active{% endif %}">
+<div class="sec-head"><h2>Günlük Üretim Ürün Listesi</h2><button type="button" class="btn-sm" onclick="var f=document.getElementById('yeniUrunBox');f.style.display=(f.style.display==='block')?'none':'block'">+ Ürün Ekle</button></div>
+<div id="yeniUrunBox" class="card-box" style="display:none;margin-bottom:14px"><form action="/pro?tab=liste" method="POST"><input type="hidden" name="islem" value="urun_ekle"><div class="grid"><div class="fld"><label>Ürün Adı</label><input type="text" name="yeni_ad" placeholder="Örn: Çavdarlı Ekşi Maya" required></div><div class="fld"><label>Üretim Adedi</label><input type="number" name="yeni_adet" value="25" required></div><div class="fld"><label>Birim Gramaj (g)</label><input type="number" name="yeni_gramaj" value="850" required></div><div class="fld"><label>Su (%)</label><input type="number" step="0.5" name="yeni_su" value="75" required></div><div class="fld"><label>Aktif Maya (%)</label><input type="number" step="0.5" name="yeni_maya" value="20" required></div><div class="fld"><label>Tuz (%)</label><input type="number" step="0.1" name="yeni_tuz" value="2.0" required></div></div><div style="margin-top:10px"><button type="button" class="btn-outline" onclick="ekSatirEkle('uEkAlan','ek_ad[]','ek_oran[]')">+ Ek Malzeme Ekle</button><div id="uEkAlan"></div></div><div class="fld" style="margin-top:10px"><label>Tarif & Yapılış</label><textarea name="yeni_yapilis" rows="3"></textarea></div><button type="submit" class="btn-full">Listeye Kaydet</button></form></div>
+{% for u in urunler %}<div class="item"><div class="item-row" onclick="var d=document.getElementById('d-{{ u.id }}');d.style.display=(d.style.display==='block')?'none':'block'"><div><b>{{ u.ad }}</b><div style="font-size:12.5px;color:#6e6d68">Birim: {{ u.gramaj|int }}g · Toplam: {{ u.hesap.toplam_hamur }}g</div></div><span style="background:#f2efe6;color:#5c3a1e;font-weight:700;font-size:13px;padding:4px 12px;border-radius:20px">{{ u.adet }} Adet</span></div><div class="item-detail" id="d-{{ u.id }}"><div class="pills"><div class="pill">Un: <b>{{ u.hesap.un }}g</b></div><div class="pill">Su: <b>{{ u.hesap.su }}g</b></div><div class="pill">Maya: <b>{{ u.hesap.maya }}g</b></div><div class="pill">Tuz: <b>{{ u.hesap.tuz }}g</b></div>{% for e in u.hesap.ekstralar %}<div class="pill">{{ e.ad }} (%{{ e.oran }}): <b>{{ e.gram }}g</b></div>{% endfor %}</div><div class="recipe">{{ u.yapilis }}</div><form action="/pro?tab=liste" method="POST" style="margin-top:8px;text-align:right"><input type="hidden" name="islem" value="urun_sil"><input type="hidden" name="sil_id" value="{{ u.id }}"><button type="submit" style="background:none;border:none;color:#a33b3b;font-size:12px;cursor:pointer">Listeden Sil</button></form></div></div>{% endfor %}
+</div>
+<div id="tab-matematik" class="tab-pane {% if aktif_sekme == 'matematik' %}active{% endif %}">
+<div class="sec-head"><h2>Fırıncı Matematiği</h2></div>
+<div class="card-box"><form action="/pro?tab=matematik" method="POST"><input type="hidden" name="islem" value="hesapla"><div class="grid"><div class="fld"><label>Ürün Adı</label><input type="text" name="uretim_adi" value="{{ uretim_adi or 'Artizan Ekşi Mayalı Ekmek' }}" required></div><div class="fld"><label>Adet</label><input type="number" name="adet" value="40" required></div><div class="fld"><label>Birim Gramaj (g)</label><input type="number" name="birim_gramaj" value="900" required></div><div class="fld"><label>Su (%)</label><input type="number" step="0.5" name="su" value="75" required></div><div class="fld"><label>Aktif Maya (%)</label><input type="number" step="0.5" name="maya" value="20" required></div><div class="fld"><label>Tuz (%)</label><input type="number" step="0.1" name="tuz" value="2.0" required></div></div><div style="margin-top:10px"><button type="button" class="btn-outline" onclick="ekSatirEkle('hEkAlan','h_ek_ad[]','h_ek_oran[]')">+ Ek Malzeme Ekle (Çavdar Unu vb.)</button><div id="hEkAlan"></div></div><button type="submit" class="btn-full">Gramajları Hesapla</button></form></div>
+{% if sonuc and aktif_sekme == 'matematik' %}<div class="card-box" style="background:#fff;margin-top:16px"><div class="pills"><div class="pill">Ana Un: <b>{{ sonuc.un }}g</b></div><div class="pill">Su: <b>{{ sonuc.su }}g</b></div><div class="pill">Maya: <b>{{ sonuc.aktif_maya }}g</b></div><div class="pill">Tuz: <b>{{ sonuc.tuz }}g</b></div>{% for e in sonuc.ekstralar %}<div class="pill">{{ e.ad }} (%{{ e.oran }}): <b>{{ e.gram }}g</b></div>{% endfor %}</div></div>{% endif %}
+</div>
+<div id="tab-maya" class="tab-pane {% if aktif_sekme == 'maya' %}active{% endif %}">
+<div class="sec-head"><h2>Maya Besleme Döngüsü</h2></div>
+<div class="card-box"><form action="/pro?tab=maya" method="POST"><input type="hidden" name="islem" value="hesapla"><div class="grid"><div class="fld"><label>Başlangıç Saati</label><input type="time" name="baslangic_saati" value="08:00" required></div><div class="fld"><label>Besleme Oranı</label><select name="besleme_orani"><option value="1:2:2">1:2:2 (4-5 Saat)</option><option value="1:3:3">1:3:3 (6-8 Saat)</option><option value="1:5:5">1:5:5 (10-12 Saat)</option></select></div><div class="fld"><label>Adet</label><input type="number" name="adet" value="40" required></div><div class="fld"><label>Birim Gramaj (g)</label><input type="number" name="birim_gramaj" value="900" required></div><div class="fld"><label>Maya Oranı (%)</label><input type="number" step="0.5" name="maya" value="20" required></div><div class="fld"><label>Su Oranı (%)</label><input type="number" step="0.5" name="su" value="75" required></div></div><button type="submit" class="btn-full">Besleme & Takvimi Çıkar</button></form></div>
+{% if sonuc and aktif_sekme == 'maya' %}<div class="card-box" style="background:#fff;margin-top:16px"><div class="pills"><div class="pill">Gereken Maya: <b>{{ sonuc.aktif_maya }}g</b></div><div class="pill" style="background:#f2efe6">Besleme ({{ sonuc.oran }}): <b>{{ sonuc.ana_maya }}g maya + {{ sonuc.besleme_un }}g un + {{ sonuc.besleme_su }}g su</b></div></div>{% for t in sonuc.takvim %}<div class="step"><div class="tm">{{ t.saat }}</div><div><b style="font-size:13.5px">{{ t.asama }}</b><div style="font-size:12.5px;color:#6e6d68">{{ t.detay }}</div></div></div>{% endfor %}</div>{% endif %}
+</div>
+</div>
+{% endif %}
+<script>
+function sekmeAc(ad,btn){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+ad).classList.add('active');btn.classList.add('active');}
+function ekSatirEkle(id,a,o){var d=document.createElement("div");d.className="ek-row";d.innerHTML="<input type='text' name='"+a+"' placeholder='Malzeme (Örn: Çavdar Unu)' style='flex:2;padding:8px 12px;border:1px solid #dcdbd5;border-radius:10px;font-size:13.5px' required><input type='number' step='0.5' name='"+o+"' placeholder='Oran %' style='flex:1;padding:8px 12px;border:1px solid #dcdbd5;border-radius:10px;font-size:13.5px' required><button type='button' onclick='this.parentElement.remove()' style='background:none;border:none;color:#a33b3b;font-weight:bold;cursor:pointer;padding:0 6px'>✕</button>";document.getElementById(id).appendChild(d);}
+</script>
+<div id="signupModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99;align-items:center;justify-content:center;padding:16px">
+<div style="background:#fff;width:100%;max-width:440px;border-radius:18px;padding:22px;position:relative">
+<button type="button" onclick="document.getElementById('signupModal').style.display='none'" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:18px;cursor:pointer">✕</button>
+<h3 style="font-size:18px;margin-bottom:4px">Modus Operandi PRO Üyeliği</h3>
+<p style="font-size:12.5px;color:#6e6d68;margin-bottom:12px">Abonelik sürenizi ve ödeme yöntemini seçin.</p>
+<form action="/pro" method="POST"><input type="hidden" name="islem" value="kayit">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+<label style="border:1px solid #dcdbd5;border-radius:10px;padding:8px;font-size:13px;cursor:pointer"><input type="radio" name="plan" id="plAylik" value="Aylık ($19/ay)"> <b>Aylık</b> ($19/ay)</label>
+<label style="border:1px solid #b8892a;background:#fbfaf7;border-radius:10px;padding:8px;font-size:13px;cursor:pointer"><input type="radio" name="plan" id="plYillik" value="Yıllık ($190/yıl)" checked> <b>Yıllık</b> ($190/yıl)</label>
+</div>
+<input type="text" name="kullanici_adi" placeholder="İşletme veya Kullanıcı Adı" style="width:100%;padding:9px 12px;border:1px solid #dcdbd5;border-radius:10px;font-size:13.5px;margin-bottom:8px" required>
+<input type="email" name="eposta" placeholder="E-posta Adresiniz" style="width:100%;padding:9px 12px;border:1px solid #dcdbd5;border-radius:10px;font-size:13.5px;margin-bottom:8px" required>
+<input type="password" name="sifre" placeholder="Şifre Oluşturun" style="width:100%;padding:9px 12px;border:1px solid #dcdbd5;border-radius:10px;font-size:13.5px;margin-bottom:10px" required>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+<label style="border:1px solid #dcdbd5;border-radius:10px;padding:8px;font-size:12.5px;cursor:pointer"><input type="radio" name="odeme_turu" value="Kredi / Banka Kartı" checked> Kredi / Banka Kartı</label>
+<label style="border:1px solid #dcdbd5;border-radius:10px;padding:8px;font-size:12.5px;cursor:pointer"><input type="radio" name="odeme_turu" value="Havale / EFT"> Havale / EFT</label>
+</div>
+<button type="submit" style="width:100%;background:#2c2219;color:#fff;border:none;padding:11px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer">Üyeliği Tamamla →</button>
+</form></div></div>
+<script>function uyeOlAc(p){document.getElementById('signupModal').style.display='flex';if(p.indexOf('Aylık')!==-1)document.getElementById('plAylik').checked=true;else document.getElementById('plYillik').checked=true;}</script>
+
+</body>
+</html>
