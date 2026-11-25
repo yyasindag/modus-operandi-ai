@@ -360,3 +360,35 @@ if os.path.exists("kutuphane_indeks.json"):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
+import os, requests
+
+def ai_yanit_olustur(soru, gecmis):
+    g_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    o_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    baglam = ""
+    try:
+        baglam, kaynaklar = kaynak_ara(soru)
+    except Exception:
+        kaynaklar = []
+    sistem = "Sen Modus Operandi AI'sın. Hamur bilimi, artizan fırıncılık ve fermantasyon alanında bilimsel, net ve Türkçe yanıt ver.\n\nKaynak Bağlamı:\n" + baglam[:3500]
+    hatalar = []
+    if g_key.startswith("AIza"):
+        for m in ["gemini-2.5-flash", "gemini-2.0-flash"]:
+            try:
+                r = requests.post(f"https://googleapis.com{m}:generateContent?key={g_key}", json={"contents": [{"parts": [{"text": sistem + "\n\nSoru: " + soru}]}]}, timeout=20)
+                if r.status_code == 200:
+                    return r.json()["candidates"][0]["content"]["parts"][0]["text"], kaynaklar
+                hatalar.append(f"Gemini({m}): {r.status_code}")
+            except Exception as e:
+                hatalar.append(f"Gemini: {e}")
+    if o_key:
+        for m in ["openrouter/free", "google/gemma-3-27b-it:free", "meta-llama/llama-3.3-70b-instruct:free"]:
+            try:
+                r = requests.post("https://openrouter.ai", headers={"Authorization": f"Bearer {o_key}", "Content-Type": "application/json"}, json={"model": m, "messages": [{"role": "system", "content": sistem}, {"role": "user", "content": soru}]}, timeout=20)
+                if r.status_code == 200:
+                    return r.json()["choices"][0]["message"]["content"], kaynaklar
+                hatalar.append(f"OR({m}): {r.status_code}")
+            except Exception as e:
+                hatalar.append(f"OR: {e}")
+    return f"API Bağlantı Bilgisi ({', '.join(hatalar) or 'Geçerli AIza Gemini anahtarı gerekli'}):\n\n" + (baglam[:800] if baglam else "Kütüphane indeksi yükleniyor."), kaynaklar
