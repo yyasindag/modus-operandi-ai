@@ -151,13 +151,6 @@ def yanit_olustur(soru, gecmis):
     return (cevap, kaynaklar) if cevap else ("⚠️ API Durumu: Anahtar kontrol ediliyor. Lütfen Render Environment Variables kısmını doğrulayın.", [])
 
 @app.route('/', methods=['GET', 'POST'])
-@app.route("/test")
-def test_api():
-    import os
-    g = os.environ.get("GEMINI_API_KEY", "")
-    o = os.environ.get("OPENROUTER_API_KEY", "")
-    return {"gemini_uzunluk": len(g), "gemini_bas": g[:4], "openrouter_uzunluk": len(o), "openrouter_bas": o[:6], "sayfa_sayisi": len(ONCELIKLI_SAYFALAR) + len(DIGER_SAYFALAR)}
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     sid = session.setdefault("sid", str(random.randint(100000, 999999)))
