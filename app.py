@@ -184,7 +184,7 @@ def api_sor():
     ISLER[jid] = {"durum": "bekliyor"}
     def arka_plan():
         try:
-            c, k = yanit_olustur(soru, [])
+            c, k = bulut_ai_yanit(soru)
             ISLER[jid] = {"durum": "hazir", "cevap": c, "kaynaklar": k}
         except Exception as e:
             ISLER[jid] = {"durum": "hazir", "cevap": f"Hata: {e}", "kaynaklar": []}
