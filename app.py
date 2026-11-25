@@ -10,8 +10,8 @@ app.secret_key = "eksimaya_gizli_sohbet_anahtari_2026"
 gemini_dosya = os.path.expanduser("~/.maya_anahtar")
 openrouter_dosya = os.path.expanduser("~/.openrouter_anahtar")
 
-GEMINI_API_KEY = open(gemini_dosya).read().strip() if os.path.exists(gemini_dosya) else ""
-OPENROUTER_API_KEY = open(openrouter_dosya).read().strip() if os.path.exists(openrouter_dosya) else ""
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 
 GEMINI_MODELLER = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
 ONCELIKLI_SAYFALAR = []
@@ -148,7 +148,7 @@ def yanit_olustur(soru, gecmis):
     sistem = "Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Normal sorularda metin içinde PDF adı veya sayfa numarası yazma."
     son_icerik = f"Kullanıcı Sorusu: {soru}\n\n[KÜTÜPHANE VERİLERİ]:\n{kitap_baglam}\n\n[ONAYLI HAKEMLİ MAKALELER (DOI REFERANSLI)]:\n{akad_metin}"
     cevap = gemini_bulut_sor(gecmis, sistem, son_icerik) or openrouter_bulut_sor(gecmis, sistem, son_icerik)
-    return (cevap, kaynaklar) if cevap else ("⚠️ API Durumu: Anahtar kontrol ediliyor. Lütfen Render Environment Variables kısmını doğrulayın.", [])
+    return (cevap, kaynaklar) if cevap else ("⚠️ Kütüphane Kaydı Özeti (AI Bağlantısı Bekleniyor)", [])
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route("/", methods=["GET", "POST"])
