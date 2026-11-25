@@ -392,3 +392,36 @@ def ai_yanit_olustur(soru, gecmis):
             except Exception as e:
                 hatalar.append(f"OR: {e}")
     return f"API Bağlantı Bilgisi ({', '.join(hatalar) or 'Geçerli AIza Gemini anahtarı gerekli'}):\n\n" + (baglam[:800] if baglam else "Kütüphane indeksi yükleniyor."), kaynaklar
+
+import gzip
+if os.path.exists("kutuphane_indeks.json.gz"):
+    with gzip.open("kutuphane_indeks.json.gz", "rt", encoding="utf-8") as _f:
+        _d = json.load(_f)
+        ONCELIKLI_SAYFALAR = _d.get("oncelikli", [])
+        DIGER_SAYFALAR = _d.get("diger", [])
+
+def ai_yanit_olustur(soru, gecmis):
+    g_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    o_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    try: baglam, kaynaklar = kaynak_ara(soru)
+    except Exception: baglam, kaynaklar = "", []
+    sistem = "Sen Modus Operandi AI'sın. Hamur bilimi ve artizan fırıncılık uzmanısın. Bilimsel ve net Türkçe yanıt ver.\n\nKaynaklar:\n" + baglam[:3000]
+    hatalar = []
+    if o_key.startswith("sk-"):
+        for m in ["openrouter/free", "google/gemma-3-27b-it:free", "meta-llama/llama-3.3-70b-instruct:free", "mistralai/mistral-small-3.1-24b-instruct:free"]:
+            try:
+                r = requests.post("https://openrouter.ai", headers={"Authorization": f"Bearer {o_key}", "Content-Type": "application/json"}, json={"model": m, "messages": [{"role": "system", "content": sistem}, {"role": "user", "content": soru}]}, timeout=25)
+                if r.status_code == 200:
+                    return r.json()["choices"]["message"]["content"], kaynaklar
+                hatalar.append(f"OR({m}): {r.status_code}")
+            except Exception as e:
+                hatalar.append(f"OR: {e}")
+    if g_key.startswith("AIza"):
+        try:
+            r = requests.post(f"https://googleapis.com{g_key}", json={"contents": [{"parts": [{"text": sistem + "\n\nSoru: " + soru}]}]}, timeout=25)
+            if r.status_code == 200:
+                return r.json()["candidates"]["content"]["parts"]["text"], kaynaklar
+            hatalar.append(f"Gemini: {r.status_code}")
+        except Exception as e:
+            hatalar.append(f"Gemini: {e}")
+    return f"Sistem Bilgisi ({', '.join(hatalar)}):\n\n" + (baglam[:900] if baglam else "Kütüphane kaydı yükleniyor."), kaynaklar
