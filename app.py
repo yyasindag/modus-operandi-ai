@@ -158,6 +158,7 @@ def test_api():
     o = os.environ.get("OPENROUTER_API_KEY", "")
     return {"gemini_uzunluk": len(g), "gemini_bas": g[:4], "openrouter_uzunluk": len(o), "openrouter_bas": o[:6], "sayfa_sayisi": len(ONCELIKLI_SAYFALAR) + len(DIGER_SAYFALAR)}
 
+@app.route("/", methods=["GET", "POST"])
 def index():
     sid = session.setdefault("sid", str(random.randint(100000, 999999)))
     SOHBET_DEPO.setdefault(sid, [])
