@@ -101,8 +101,8 @@ def openalex_ve_crossref_ara(kelimeler):
                 dergi_adi = dergi.get("display_name", "Hakemli Bilim Dergisi") if dergi else "Hakemli Bilim Dergisi"
                 ozetler += f"- [{yil}] {baslik} | Yazar: {yazar} vd. | Dergi: {dergi_adi} | Atıf: {atif}\n"
                 kaynaklar.append({"baslik": f"🎓 ({yil}) {baslik} — {dergi_adi} ({atif} atıf)", "link": doi})
-    except Exception:
-        pass
+    except Exception as _err:
+        son_hata = str(_err)
     return ozetler, kaynaklar
 
 def gemini_bulut_sor(gecmis, sistem, son_icerik):
@@ -131,7 +131,8 @@ def openrouter_bulut_sor(gecmis, sistem, son_icerik):
             res = requests.post(url, headers=headers, json={"model": m_or, "messages": mesajlar, "temperature": 0.2}, timeout=25)
             if res.status_code == 200:
                 return next(iter(res.json().get("choices", []))).get("message", {}).get("content")
-        except Exception:
+        except Exception as _err:
+            son_hata = str(_err)
             continue
     return None
 
