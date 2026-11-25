@@ -357,7 +357,7 @@ if __name__ == '__main__':
 
 import os, requests
 
-def ai_yanit_olustur(soru, gecmis):
+def bulut_ai_yanit(soru):
     g_key = os.environ.get("GEMINI_API_KEY", "").strip()
     o_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     baglam = ""
@@ -394,7 +394,7 @@ if os.path.exists("kutuphane_indeks.json.gz"):
         ONCELIKLI_SAYFALAR = _d.get("oncelikli", [])
         DIGER_SAYFALAR = _d.get("diger", [])
 
-def ai_yanit_olustur(soru, gecmis):
+def bulut_ai_yanit(soru):
     g_key = os.environ.get("GEMINI_API_KEY", "").strip()
     o_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     try: baglam, kaynaklar = yerel_kitap_ara(soru)
