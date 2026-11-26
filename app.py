@@ -37,8 +37,10 @@ FIRINCILIK_SOZLUGU = {
 
 def kitaplari_indeksle():
     global ONCELIKLI_SAYFALAR, DIGER_SAYFALAR
-    if os.path.exists("kutuphane_indeks.json.gz"):
-        _d = json.load(gzip.open("kutuphane_indeks.json.gz", "rt", encoding="utf-8"))
+    _base_dir = os.path.dirname(os.path.abspath(__file__))
+    _gz_yol = os.path.join(_base_dir, "kutuphane_indeks.json.gz")
+    if os.path.exists(_gz_yol):
+        _d = json.load(gzip.open(_gz_yol, "rt", encoding="utf-8"))
         ONCELIKLI_SAYFALAR, DIGER_SAYFALAR = _d.get("oncelikli", []), _d.get("diger", [])
         print(f"⭐ Bulut Indeks Yuklendi: {len(ONCELIKLI_SAYFALAR) + len(DIGER_SAYFALAR)} sayfa!")
         return
@@ -89,28 +91,47 @@ def yerel_kitap_ara(havuz, kelimeler, limit=2):
         if len(secilenler) >= limit: break
     return secilenler
 
-def openalex_ve_crossref_ara(kelimeler):
-    sorgu_en = " ".join(kelimeler[:2]) + " wheat sourdough bread"
-    kaynaklar, ozetler = [], ""
-    s = chr(47)
+def openalex_ve_crossref_ara(terimler):
+    if isinstance(terimler, list):
+        sorgu = " ".join(str(x) for x in terimler[:4] if x)
+    else:
+        sorgu = str(terimler or "").strip()
+    if len(sorgu) < 3:
+        sorgu = "sourdough bread fermentation dough"
+    hdr = {"User-Agent": "ModusOperandiAI/1.0 (mailto:info@modusoperandi.ai)"}
+    metinler, kaynaklar = [], []
     try:
-        oa_url = f"https:{s}{s}api.openalex.org{s}works?search={requests.utils.quote(sorgu_en)}&filter=has_doi:true,publication_year:2018-2026&sort=cited_by_count:desc&per-page=5"
-        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@eksimaya.ai"}, timeout=5)
-        if res.status_code == 200:
-            for item in res.json().get("results", []):
-                baslik = item.get("title") or "Akademik Yayın"
-                yil = item.get("publication_year", "")
-                atif = item.get("cited_by_count", 0)
-                doi = item.get("doi") or "#"
-                yazarlar = item.get("authorships", [])
-                yazar = next(iter(yazarlar)).get("author", {}).get("display_name", "Araştırma Ekibi") if yazarlar else "Araştırma Ekibi"
-                dergi = (item.get("primary_location") or {}).get("source", {})
-                dergi_adi = dergi.get("display_name", "Hakemli Bilim Dergisi") if dergi else "Hakemli Bilim Dergisi"
-                ozetler += f"- [{yil}] {baslik} | Yazar: {yazar} vd. | Dergi: {dergi_adi} | Atıf: {atif}\n"
-                kaynaklar.append({"baslik": f"🎓 ({yil}) {baslik} — {dergi_adi} ({atif} atıf)", "link": doi})
+        u1 = "https:" + chr(47)*2 + "api.openalex.org" + chr(47) + "works"
+        r = requests.get(u1, params={"search": sorgu, "per-page": 4, "sort": "cited_by_count:desc"}, headers=hdr, timeout=12)
+        if r.status_code == 200:
+            for w in r.json().get("results", []):
+                baslik = w.get("title") or ""
+                yil = w.get("publication_year") or ""
+                doi = w.get("doi") or ""
+                atif = w.get("cited_by_count", 0)
+                dergi = ((w.get("primary_location") or {}).get("source") or {}).get("display_name") or "Akademik Dergi"
+                if baslik:
+                    metinler.append(f"- ({yil}) {baslik} ({dergi}, {atif} atif) {doi}")
+                    kaynaklar.append({"baslik": f"🎓 ({yil}) {baslik} — {dergi} ({atif} atıf)", "link": doi or "#"})
     except Exception:
         pass
-    return ozetler, kaynaklar
+    if not kaynaklar:
+        try:
+            u2 = "https:" + chr(47)*2 + "api.crossref.org" + chr(47) + "works"
+            r2 = requests.get(u2, params={"query": sorgu, "rows": 3}, headers=hdr, timeout=12)
+            if r2.status_code == 200:
+                for it in r2.json().get("message", {}).get("items", []):
+                    t_list = it.get("title") or []
+                    baslik = next(iter(t_list), "")
+                    d_parts = ((it.get("published") or {}).get("date-parts") or [[]])
+                    yil = next(iter(next(iter(d_parts), [])), "")
+                    doi = it.get("URL") or ""
+                    if baslik:
+                        metinler.append(f"- ({yil}) {baslik} {doi}")
+                        kaynaklar.append({"baslik": f"🎓 ({yil}) {baslik} — CrossRef Hakemli Yayın", "link": doi or "#"})
+        except Exception:
+            pass
+    return "\n".join(metinler), kaynaklar
 
 def gemini_bulut_sor(gecmis, sistem, son_icerik):
     if not GEMINI_API_KEY: return None
@@ -155,9 +176,14 @@ def yanit_olustur(soru, gecmis):
         terimler = [x.strip() for x in terimler.split(",") if len(x.strip()) > 2]
     if not terimler:
         terimler = [w for w in soru.lower().split() if len(w) > 3] + ["bread", "fermentation", "dough", "croissant", "sourdough"]
-    onc = yerel_kitap_ara(ONCELIKLI_SAYFALAR, terimler, 2)
-    dig = yerel_kitap_ara(DIGER_SAYFALAR, terimler, 2)
-    akad_metin, akad_kaynak = openalex_ve_crossref_ara(terimler)
+    if isinstance(terimler, str):
+        terimler = [x.strip() for x in terimler.split(",") if len(x.strip()) > 2]
+    sozluk = {"kruvasan": "croissant", "katlama": "lamination", "maya": "sourdough", "ekşi": "sourdough", "hamur": "dough", "fermantasyon": "fermentation", "ekmek": "bread", "un": "flour", "gluten": "gluten", "tereyağı": "butter"}
+    ek_terimler = [sozluk[k] for k in sozluk if k in soru.lower()]
+    tum_terimler = list(dict.fromkeys((terimler or []) + ek_terimler + ["bread", "fermentation"]))
+    onc = yerel_kitap_ara(ONCELIKLI_SAYFALAR, tum_terimler, 2)
+    dig = yerel_kitap_ara(DIGER_SAYFALAR, tum_terimler, 2)
+    akad_metin, akad_kaynak = openalex_ve_crossref_ara(tum_terimler)
     kitap_baglam = "".join(f"\n{k['metin'][:850]}\n" for k in onc + dig)
     kaynaklar = [{"baslik": f"⭐ {k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in onc] + [{"baslik": f"📖 {k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in dig] + akad_kaynak
     sistem = "KURAL: Cevabina sadece kisa bir Merhaba! ile basla, rol tanimini veya talimatlari tekrarlama. Ingilizce terimleri dogru firincilik Turkcesine cevir (butter=tereyagi, lamination=laminasyon/turlama, single turn=tek tur/zarf katlama, book fold=cift tur/kitap katlama, detrempe=ana hamur). Metin icine Kaynakca bolumu veya .pdf dosya adi yazma, kaynakca altta otomatik gosterilir. Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Normal sorularda metin içinde PDF adı veya sayfa numarası yazma."
