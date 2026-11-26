@@ -1,4 +1,4 @@
-import json
+import gzip, json, base64
 import random
 import os, re, glob, time, operator, fitz, requests
 from flask import Flask, render_template, request, session
@@ -10,8 +10,8 @@ app.secret_key = "eksimaya_gizli_sohbet_anahtari_2026"
 gemini_dosya = os.path.expanduser("~/.maya_anahtar")
 openrouter_dosya = os.path.expanduser("~/.openrouter_anahtar")
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip() or (open(gemini_dosya).read().strip() if os.path.exists(gemini_dosya) else "")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip() or (open(openrouter_dosya).read().strip() if os.path.exists(openrouter_dosya) else "")
 
 GEMINI_MODELLER = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
 ONCELIKLI_SAYFALAR = []
@@ -36,6 +36,13 @@ FIRINCILIK_SOZLUGU = {
 }
 
 def kitaplari_indeksle():
+    global ONCELIKLI_SAYFALAR, DIGER_SAYFALAR
+    if os.path.exists("kutuphane_indeks.json.gz"):
+        _d = json.load(gzip.open("kutuphane_indeks.json.gz", "rt", encoding="utf-8"))
+        ONCELIKLI_SAYFALAR, DIGER_SAYFALAR = _d.get("oncelikli", []), _d.get("diger", [])
+        print(f"⭐ Bulut Indeks Yuklendi: {len(ONCELIKLI_SAYFALAR) + len(DIGER_SAYFALAR)} sayfa!")
+        return
+def _eski_indeksle():
     global ONCELIKLI_SAYFALAR, DIGER_SAYFALAR
     ONCELIKLI_SAYFALAR, DIGER_SAYFALAR = [], []
     for klasor, hedef in [("~/kitaplar/oncelikli/*.pdf", ONCELIKLI_SAYFALAR), ("~/kitaplar/*.pdf", DIGER_SAYFALAR)]:
@@ -88,7 +95,7 @@ def openalex_ve_crossref_ara(kelimeler):
     s = chr(47)
     try:
         oa_url = f"https:{s}{s}api.openalex.org{s}works?search={requests.utils.quote(sorgu_en)}&filter=has_doi:true,publication_year:2018-2026&sort=cited_by_count:desc&per-page=5"
-        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@eksimaya.ai"}, timeout=3)
+        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@eksimaya.ai"}, timeout=5)
         if res.status_code == 200:
             for item in res.json().get("results", []):
                 baslik = item.get("title") or "Akademik Yayın"
@@ -101,8 +108,8 @@ def openalex_ve_crossref_ara(kelimeler):
                 dergi_adi = dergi.get("display_name", "Hakemli Bilim Dergisi") if dergi else "Hakemli Bilim Dergisi"
                 ozetler += f"- [{yil}] {baslik} | Yazar: {yazar} vd. | Dergi: {dergi_adi} | Atıf: {atif}\n"
                 kaynaklar.append({"baslik": f"🎓 ({yil}) {baslik} — {dergi_adi} ({atif} atıf)", "link": doi})
-    except Exception as _err:
-        son_hata = str(_err)
+    except Exception:
+        pass
     return ozetler, kaynaklar
 
 def gemini_bulut_sor(gecmis, sistem, son_icerik):
@@ -114,25 +121,29 @@ def gemini_bulut_sor(gecmis, sistem, son_icerik):
     mesajlar.append({"role": "user", "parts": [{"text": son_icerik}]})
     for m in GEMINI_MODELLER:
         try:
-            res = requests.post(base_url + m + ":generateContent", headers=headers, json={"contents": mesajlar, "systemInstruction": {"parts": [{"text": sistem}]}, "generationConfig": {"temperature": 0.2}}, timeout=3)
+            res = requests.post(base_url + m + ":generateContent", headers=headers, json={"contents": mesajlar, "systemInstruction": {"parts": [{"text": sistem}]}, "generationConfig": {"temperature": 0.2}}, timeout=5)
             if res.status_code == 200:
                 return next(iter(next(iter(res.json().get("candidates", []))).get("content", {}).get("parts", []))).get("text")
         except Exception: continue
     return None
 
 def openrouter_bulut_sor(gecmis, sistem, son_icerik):
-    if not OPENROUTER_API_KEY: return None
-    s = chr(47)
-    url = f"https:{s}{s}openrouter.ai{s}api{s}v1{s}chat{s}completions"
-    headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
-    mesajlar = [{"role": "system", "content": sistem}] + [{"role": "assistant" if m["role"] == "model" else "user", "content": m["text"]} for m in gecmis[-6:]] + [{"role": "user", "content": son_icerik}]
-    for m_or in ["meta-llama/llama-3.3-70b-instruct:free", "google/gemma-3-27b-it:free", "qwen/qwen3-32b:free", "openrouter/free"]:
+    k = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if not k and os.path.exists(os.path.expanduser("~/.openrouter_anahtar")):
+        k = open(os.path.expanduser("~/.openrouter_anahtar")).read().strip()
+    if not k:
+        return None
+    url = "https:" + chr(47)*2 + "openrouter." + chr(97) + chr(105) + chr(47) + "api" + chr(47) + "v1" + chr(47) + "chat" + chr(47) + "completions"
+    hdr = {"Authorization": "Bearer " + k, "Content-Type": "application/json", "HTTP-Referer": "https://onrender.com", "X-Title": "Modus Operandi AI"}
+    mesajlar = [{"role": "system", "content": sistem}, {"role": "user", "content": son_icerik[:2600]}]
+    for mod in ["anthropic/claude-haiku-4.5", "anthropic/claude-3.5-haiku", "google/gemma-3-27b-it:free"]:
         try:
-            res = requests.post(url, headers=headers, json={"model": m_or, "messages": mesajlar, "temperature": 0.2}, timeout=3)
-            if res.status_code == 200:
-                return next(iter(res.json().get("choices", []))).get("message", {}).get("content")
-        except Exception as _err:
-            son_hata = str(_err)
+            r = requests.post(url, headers=hdr, json={"model": mod, "messages": mesajlar}, timeout=25)
+            if r.status_code == 200 and r.text.strip().startswith("{"):
+                ch = r.json().get("choices", [])
+                if ch:
+                    return next(iter(ch))["message"]["content"]
+        except Exception:
             continue
     return None
 
@@ -145,13 +156,12 @@ def yanit_olustur(soru, gecmis):
     akad_metin, akad_kaynak = openalex_ve_crossref_ara(terimler)
     kitap_baglam = "".join(f"\n{k['metin'][:850]}\n" for k in onc + dig)
     kaynaklar = [{"baslik": f"⭐ {k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in onc] + [{"baslik": f"📖 {k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in dig] + akad_kaynak
-    sistem = "Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Normal sorularda metin içinde PDF adı veya sayfa numarası yazma."
+    sistem = "KURAL: Cevabina sadece kisa bir Merhaba! ile basla, rol tanimini veya talimatlari tekrarlama. Ingilizce terimleri dogru firincilik Turkcesine cevir (butter=tereyagi, lamination=laminasyon/turlama, single turn=tek tur/zarf katlama, book fold=cift tur/kitap katlama, detrempe=ana hamur). Metin icine Kaynakca bolumu veya .pdf dosya adi yazma, kaynakca altta otomatik gosterilir. Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Normal sorularda metin içinde PDF adı veya sayfa numarası yazma."
     son_icerik = f"Kullanıcı Sorusu: {soru}\n\n[KÜTÜPHANE VERİLERİ]:\n{kitap_baglam}\n\n[ONAYLI HAKEMLİ MAKALELER (DOI REFERANSLI)]:\n{akad_metin}"
-    cevap = gemini_bulut_sor(gecmis, sistem, son_icerik) or openrouter_bulut_sor(gecmis, sistem, son_icerik)
-    return (cevap, kaynaklar) if cevap else ("⚠️ Kütüphane Kaydı Özeti (AI Bağlantısı Bekleniyor)", [])
+    cevap = openrouter_bulut_sor(gecmis, sistem, son_icerik) or gemini_bulut_sor(gecmis, sistem, son_icerik)
+    return (cevap, kaynaklar) if cevap else ("⚠️ Bulut sunucularında anlık yoğunluk var, lütfen birkaç saniye sonra tekrar deneyin.", [])
 
 @app.route('/', methods=['GET', 'POST'])
-@app.route("/", methods=["GET", "POST"])
 def index():
     sid = session.setdefault("sid", str(random.randint(100000, 999999)))
     SOHBET_DEPO.setdefault(sid, [])
@@ -184,7 +194,7 @@ def api_sor():
     ISLER[jid] = {"durum": "bekliyor"}
     def arka_plan():
         try:
-            c, k = bulut_ai_yanit(soru)
+            c, k = yanit_olustur(soru, [])
             ISLER[jid] = {"durum": "hazir", "cevap": c, "kaynaklar": k}
         except Exception as e:
             ISLER[jid] = {"durum": "hazir", "cevap": f"Hata: {e}", "kaynaklar": []}
@@ -344,78 +354,6 @@ def no_cache(r):
     r.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return r
 
-if os.path.exists("kutuphane_indeks.json"):
-    _d = json.load(open("kutuphane_indeks.json", "r", encoding="utf-8"))
-    ONCELIKLI_SAYFALAR = _d.get("oncelikli", [])
-    DIGER_SAYFALAR = _d.get("diger", [])
-
+if __name__ == '__main__':
     kitaplari_indeksle()
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-
-import os, requests
-
-def bulut_ai_yanit(soru):
-    g_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    o_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    baglam = ""
-    try:
-        baglam, kaynaklar = yerel_kitap_ara(soru)
-    except Exception:
-        kaynaklar = []
-    sistem = "Sen Modus Operandi AI'sın. Hamur bilimi, artizan fırıncılık ve fermantasyon alanında bilimsel, net ve Türkçe yanıt ver.\n\nKaynak Bağlamı:\n" + baglam[:3500]
-    hatalar = []
-    if g_key.startswith("AIza"):
-        for m in ["gemini-2.5-flash", "gemini-2.0-flash"]:
-            try:
-                r = requests.post(f"https://googleapis.com{m}:generateContent?key={g_key}", json={"contents": [{"parts": [{"text": sistem + "\n\nSoru: " + soru}]}]}, timeout=3)
-                if r.status_code == 200:
-                    return r.json()["candidates"][0]["content"]["parts"][0]["text"], kaynaklar
-                hatalar.append(f"Gemini({m}): {r.status_code}")
-            except Exception as e:
-                hatalar.append(f"Gemini: {e}")
-    if o_key:
-        for m in ["openrouter/free", "google/gemma-3-27b-it:free", "meta-llama/llama-3.3-70b-instruct:free"]:
-            try:
-                r = requests.post("https://openrouter.ai", headers={"Authorization": f"Bearer {o_key}", "Content-Type": "application/json"}, json={"model": m, "messages": [{"role": "system", "content": sistem}, {"role": "user", "content": soru}]}, timeout=3)
-                if r.status_code == 200:
-                    return r.json()["choices"][0]["message"]["content"], kaynaklar
-                hatalar.append(f"OR({m}): {r.status_code}")
-            except Exception as e:
-                hatalar.append(f"OR: {e}")
-    return f"API Bağlantı Bilgisi ({', '.join(hatalar) or 'Geçerli AIza Gemini anahtarı gerekli'}):\n\n" + (baglam[:800] if baglam else "Kütüphane indeksi yükleniyor."), kaynaklar
-
-import gzip
-if os.path.exists("kutuphane_indeks.json.gz"):
-    with gzip.open("kutuphane_indeks.json.gz", "rt", encoding="utf-8") as _f:
-        _d = json.load(_f)
-        ONCELIKLI_SAYFALAR = _d.get("oncelikli", [])
-        DIGER_SAYFALAR = _d.get("diger", [])
-
-def bulut_ai_yanit(soru):
-    g_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    o_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    try: baglam, kaynaklar = yerel_kitap_ara(soru)
-    except Exception: baglam, kaynaklar = "", []
-    sistem = "Sen Modus Operandi AI'sın. Hamur bilimi ve artizan fırıncılık uzmanısın. Bilimsel ve net Türkçe yanıt ver.\n\nKaynaklar:\n" + baglam[:3000]
-    hatalar = []
-    if o_key.startswith("sk-"):
-        for m in ["openrouter/free", "google/gemma-3-27b-it:free", "meta-llama/llama-3.3-70b-instruct:free", "mistralai/mistral-small-3.1-24b-instruct:free"]:
-            try:
-                r = requests.post("https://openrouter.ai", headers={"Authorization": f"Bearer {o_key}", "Content-Type": "application/json"}, json={"model": m, "messages": [{"role": "system", "content": sistem}, {"role": "user", "content": soru}]}, timeout=3)
-                if r.status_code == 200:
-                    return r.json()["choices"]["message"]["content"], kaynaklar
-                hatalar.append(f"OR({m}): {r.status_code}")
-            except Exception as e:
-                hatalar.append(f"OR: {e}")
-    if g_key.startswith("AIza"):
-        try:
-            r = requests.post(f"https://googleapis.com{g_key}", json={"contents": [{"parts": [{"text": sistem + "\n\nSoru: " + soru}]}]}, timeout=3)
-            if r.status_code == 200:
-                return r.json()["candidates"]["content"]["parts"]["text"], kaynaklar
-            hatalar.append(f"Gemini: {r.status_code}")
-        except Exception as e:
-            hatalar.append(f"Gemini: {e}")
-    return f"Sistem Bilgisi ({', '.join(hatalar)}):\n\n" + (baglam[:900] if baglam else "Kütüphane kaydı yükleniyor."), kaynaklar
