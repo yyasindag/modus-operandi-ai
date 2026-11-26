@@ -207,7 +207,6 @@ def index():
         pass
     return render_template('index.html', sohbet=SOHBET_DEPO[sid], pdf_sayisi=pdf_sayisi)
 
-@app.route('/temizle')
 @app.route("/cikis")
 def cikis():
     session.pop("pro_yetkili", None)
@@ -236,6 +235,7 @@ def api_sor():
 def api_durum(jid):
     return ISLER.get(jid, {"durum": "bekliyor"})
 
+@app.route('/temizle')
 def temizle():
     SOHBET_DEPO.clear()
     return render_template('index.html', sohbet=[], pdf_sayisi=len(glob.glob(os.path.expanduser("~/kitaplar/oncelikli/*.pdf"))) + len(glob.glob(os.path.expanduser("~/kitaplar/*.pdf"))))

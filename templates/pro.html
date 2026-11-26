@@ -45,7 +45,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </style>
 </head>
 <body>
-<div class="topbar"><div class="brand"><div class="logo">M</div><span>Modus Operandi</span><span class="tag">PRO</span>{% if session.get('pro_kullanici') %}<span style="font-size:12.5px;color:#6e6d68;font-weight:500">· {{ session.get('pro_kullanici') }}</span>{% endif %}</div><div style="display:flex;align-items:center;gap:8px;position:relative">
+<div class="topbar"><div class="brand"><a href="/temizle" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;" title="Ana Sayfaya Dön (Soru Sorma Ekranı)"><div class="logo" onclick="window.location.href='/temizle'" style="cursor:pointer" title="Soru Sorma Ekranına Dön">M</div><span onclick="window.location.href='/temizle'" style="cursor:pointer" title="Soru Sorma Ekranına Dön">Modus Operandi</span><span class="tag">PRO</span></a>{% if session.get('pro_kullanici') %}<span style="font-size:12.5px;color:#6e6d68;font-weight:500">· {{ session.get('pro_kullanici') }}</span>{% endif %}</div><div style="display:flex;align-items:center;gap:8px;position:relative">
     {% if not acik_panel %}
     <button type="button" onclick="var m=document.getElementById('topLogin');m.style.display=(m.style.display==='block')?'none':'block'" style="background:#2c2219;color:#fff;border:none;padding:6px 14px;border-radius:18px;font-size:12.5px;font-weight:600;cursor:pointer">PRO Üye Girişi</button>
     <div id="topLogin" style="display:{{ 'block' if hata else 'none' }};position:absolute;top:44px;right:0;width:270px;background:#fff;border:1px solid #e5e5e0;border-radius:14px;padding:14px;box-shadow:0 10px 28px rgba(0,0,0,0.09);z-index:50">
@@ -66,6 +66,77 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 <div class="badge">İŞLETME & PROFESYONEL MUTFAK</div>
 <h1 style="font-size:28px;margin-bottom:10px">Modus Operandi PRO Nedir?</h1>
 <p style="font-size:15px;color:#6e6d68;max-width:560px;margin:0 auto">Artizan fırınlar ve profesyonel üretim mutfakları için geliştirilmiş; <b>Günlük Ürün Takip Listesi</b>, <b>Fırıncı Matematiği Ölçekleyici</b> ve <b>Maya Besleme Döngüsü</b> araçlarını tek merkezde sunan işletme paketidir.</p>
+
+<div style="margin:24px 0 28px;border-radius:18px;border:1px solid #e5e5e0;background:linear-gradient(135deg,#fbfaf7 0%,#f4efe6 100%);padding:26px 28px;display:flex;align-items:center;justify-content:space-between;gap:24px;text-align:left;flex-wrap:wrap;">
+  <div style="flex:1;min-width:260px;">
+    <div style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:0.6px;color:#996e17;text-transform:uppercase;margin-bottom:8px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      PROFESYONEL ÜRETİM & AR-GE İSTASYONU
+    </div>
+    <div style="font-size:19px;font-weight:700;color:#1a1a18;line-height:1.35;">Artizan Fırıncılıkta Bilimsel Kesinlik ve Dijital Üretim Yönetimi</div>
+    <div style="font-size:13.5px;color:#6e6d68;margin-top:8px;line-height:1.6;">Günlük üretim listesi, otomatik hammadde gramajlama, fırıncı yüzdesi ölçekleme ve kişisel reçete havuzu tek kurumsal panelde.</div>
+  </div>
+  <div style="flex-shrink:0;background:#fff;border:1px solid #e5e5e0;border-radius:14px;padding:16px 18px;box-shadow:0 4px 16px rgba(44,34,25,0.04);">
+    <svg width="120" height="86" viewBox="0 0 120 86" fill="none" xmlns="http://w3.org">
+      <rect x="6" y="10" width="108" height="66" rx="8" fill="#fbfaf7" stroke="#dcdbd5" stroke-width="1.5"/>
+      <path d="M24 54C24 38 40 28 60 28C80 28 96 38 96 54" stroke="#996e17" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M44 31C46 37 46 43 44 49" stroke="#2c2219" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M60 28C62 35 62 42 60 49" stroke="#2c2219" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M76 31C78 37 78 43 76 49" stroke="#2c2219" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="20" y1="54" x2="100" y2="54" stroke="#2c2219" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="94" cy="22" r="4" fill="#c99a38"/>
+    </svg>
+  </div>
+</div>
+
+<div style="text-align:left;margin-bottom:28px;">
+  <div style="font-size:11.5px;font-weight:700;color:#8c6239;margin-bottom:10px;letter-spacing:0.5px;">MODUS OPERANDI PRO ÖZELLİKLERİ (Detaylar için başlıklara tıklayın)</div>
+
+  <div class="item" onclick="var d=this.querySelector('.item-detail');d.style.display=(d.style.display==='block')?'none':'block'">
+    <div class="item-row">
+      <span style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1a1a18;font-size:14px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#996e17" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>
+        Günlük Üretim Listesi & Otomatik Gramaj Motoru
+      </span>
+      <span style="font-size:12px;color:#996e17;font-weight:600;">Detay ▾</span>
+    </div>
+    <div class="item-detail" style="font-size:13px;color:#4a4842;line-height:1.6;">İmalathanenizde o gün üretilecek ürün adetlerini (örneğin <b>45 Kruvasan + 30 Ekşi Mayalı Köy Ekmeği</b>) girdiğinizde sistem tüm reçeteleri birleştirir; o gün tartmanız gereken toplam <b>un, su, ekşi maya, tereyağı ve tuz gramajlarını</b> tek tabloda hesaplar ve tezgâh başı için yazdırılabilir üretim fişi oluşturur.</div>
+  </div>
+
+  <div class="item" onclick="var d=this.querySelector('.item-detail');d.style.display=(d.style.display==='block')?'none':'block'">
+    <div class="item-row">
+      <span style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1a1a18;font-size:14px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#996e17" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
+        Fırıncı Matematiği (Baker's %) & Hamur Ölçekleme
+      </span>
+      <span style="font-size:12px;color:#996e17;font-weight:600;">Detay ▾</span>
+    </div>
+    <div class="item-detail" style="font-size:13px;color:#4a4842;line-height:1.6;">Tüm formüllerinizi un ağırlığını <b>%100</b> kabul eden uluslararası Fırıncı Yüzdesi standartlarına dönüştürür. Küçük bir Ar-Ge deneme reçetesini (örneğin 1 kg unluk hamuru) saniyeler içinde 25 kg veya 50 kg imalathane kazanına fire vermeden ölçeklemenizi sağlar.</div>
+  </div>
+
+  <div class="item" onclick="var d=this.querySelector('.item-detail');d.style.display=(d.style.display==='block')?'none':'block'">
+    <div class="item-row">
+      <span style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1a1a18;font-size:14px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#996e17" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+        5.563 Sayfalık Dünya Kütüphanesi & Hakemli Makaleler
+      </span>
+      <span style="font-size:12px;color:#996e17;font-weight:600;">Detay ▾</span>
+    </div>
+    <div class="item-detail" style="font-size:13px;color:#4a4842;line-height:1.6;">Michel Suas, Jeffrey Hamelman, Tartine ve The Sourdough School gibi referans eserlerin sayfa numaralı analizleri ile <b>250 milyondan fazla hakemli gıda bilimi makalesine</b> sınırsız erişim sunar; her yanıtta doğrulanmış kitap ve DOI kaynakçası verir.</div>
+  </div>
+
+  <div class="item" onclick="var d=this.querySelector('.item-detail');d.style.display=(d.style.display==='block')?'none':'block'">
+    <div class="item-row">
+      <span style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1a1a18;font-size:14px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#996e17" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/></svg>
+        Kişisel Reçete Havuzu & Ürün Yönetimi
+      </span>
+      <span style="font-size:12px;color:#996e17;font-weight:600;">Detay ▾</span>
+    </div>
+    <div class="item-detail" style="font-size:13px;color:#4a4842;line-height:1.6;">Atölyenize özel geliştirdiğiniz ekmek, kruvasan ve brioche formüllerini porsiyon gramajlarıyla birlikte kişisel PRO havuzunuza kaydedebilir, her üretim gününde tek tıkla çağırıp sipariş adedine göre yönetebilirsiniz.</div>
+  </div>
+</div>
+
 <div class="plans">
 <div class="pcard"><div style="font-size:12px;font-weight:700;color:#6e6d68">AYLIK PLAN</div><div style="font-size:30px;font-weight:800;margin:4px 0">$19 <span style="font-size:14px;font-weight:400;color:#6e6d68">/ ay</span></div><ul style="list-style:none;font-size:13.5px;line-height:2;margin-top:12px"><li>✓ Günlük Ürün & Reçete Listesi</li><li>✓ Dinamik Fırıncı Matematiği</li><li>✓ Saatlik Maya Besleme Takvimi</li></ul><button type="button" onclick="uyeOlAc('Aylık ($19/ay)')" class="pbtn" style="width:100%;background:#f7f7f5;border:1px solid #dcdbd5;color:#1a1a18;cursor:pointer">Aylık Planla Üye Ol</button></div>
 <div class="pcard pro"><span style="position:absolute;top:-11px;right:16px;background:#b8892a;color:#fff;font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px">2 AY ÜCRETSİZ</span><div style="font-size:12px;font-weight:700;color:#996e17">YILLIK İŞLETME PLANI</div><div style="font-size:30px;font-weight:800;margin:4px 0">$190 <span style="font-size:14px;font-weight:400;color:#6e6d68">/ yıl</span></div><ul style="list-style:none;font-size:13.5px;line-height:2;margin-top:12px"><li>✓ Tüm PRO Üretim & Reçete Modülleri</li><li>✓ Çoklu Tezgah & Ekip Kullanımı</li><li>✓ 12 Ay Sabit Fiyat Garantisi</li></ul><button type="button" onclick="uyeOlAc('Yıllık ($190/yıl)')" class="pbtn" style="width:100%;background:#2c2219;border:none;color:#fff;cursor:pointer">Yıllık Planla Üye Ol</button></div>
