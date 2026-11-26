@@ -151,6 +151,10 @@ def yanit_olustur(soru, gecmis):
     terimler = ingilizce_terimlere_cevir(soru, gecmis)
     if not terimler:
         return "Ben yalnızca artizan fırıncılık, pastacılık, viennoiserie ve fermantasyon bilimi üzerine uzmanlaşmış bir asistanım. Lütfen bu alanlarla ilgili teknik veya bilimsel bir soru sorun.", []
+    if isinstance(terimler, str):
+        terimler = [x.strip() for x in terimler.split(",") if len(x.strip()) > 2]
+    if not terimler:
+        terimler = [w for w in soru.lower().split() if len(w) > 3] + ["bread", "fermentation", "dough", "croissant", "sourdough"]
     onc = yerel_kitap_ara(ONCELIKLI_SAYFALAR, terimler, 2)
     dig = yerel_kitap_ara(DIGER_SAYFALAR, terimler, 2)
     akad_metin, akad_kaynak = openalex_ve_crossref_ara(terimler)
