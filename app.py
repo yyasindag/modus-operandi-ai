@@ -628,7 +628,7 @@ def gizlilik():
 
 @app.route("/uyeler_yonetim")
 def uyeler_yonetim():
-    db_durum = "✅ Neon PostgreSQL Bağlı (Kalıcı)" if _pg_baglan() else "⚠️ Yerel Dosya (DATABASE_URL bekleniyor)"
+    db_durum = "✅ Neon PostgreSQL Bağlı (Kalıcı)" if _pg_baglan() else f"⚠️ Bağlanamadı: {_SON_DB_HATA}"
     mail_durum = "✅ Resend Aktif" if os.environ.get("RESEND_API_KEY", "").strip() else "⚠️ RESEND_API_KEY bekleniyor"
     anahtar = os.environ.get("ADMIN_KEY", "modus2026").strip()
     if request.args.get("key", "") != anahtar:
