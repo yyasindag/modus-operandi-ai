@@ -1,3 +1,4 @@
+import json
 from flask import redirect
 import secrets, uuid
 import random
@@ -641,6 +642,76 @@ def uyeler_yonetim():
     <style>body{{font-family:sans-serif;background:#faf8f5;padding:30px;color:#1a1815}}table{{width:100%;border-collapse:collapse;background:#fff;margin-top:16px}}th,td{{border:1px solid #e5e0d8;padding:10px;text-align:left}}th{{background:#f3efe8}}.btn{{display:inline-block;padding:10px 16px;background:#b48228;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}}</style></head>
     <body><h2>Kayıtlı Üyeler ({len(u)} Kişi)</h2><a class='btn' href='?key={anahtar}&indir=csv'>Excel / CSV İndir</a>
     <table><tr><th>#</th><th>Ad Soyad</th><th>Kullanıcı Adı</th><th>E-posta</th></tr>{rows}</table></body></html>"""
+
+
+
+SOHBETLER_D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sohbetler.json")
+
+def _sohbetleri_oku():
+    if os.path.exists(SOHBETLER_D):
+        try:
+            return json.load(open(SOHBETLER_D, "r", encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+def _sohbetleri_yaz(veri):
+    try:
+        json.dump(veri, open(SOHBETLER_D, "w", encoding="utf-8"), ensure_ascii=False)
+    except Exception:
+        pass
+
+@app.route("/api/sohbetler", methods=["GET"])
+def api_sohbetler():
+    ep = session.get("uye_eposta", "")
+    if not ep:
+        return jsonify({"giris": False, "sohbetler": []})
+    tum = _sohbetleri_oku().get(ep, [])
+    ozet = [{"id": s["id"], "baslik": s["baslik"], "tarih": s.get("tarih", "")} for s in tum]
+    return jsonify({"giris": True, "sohbetler": ozet})
+
+@app.route("/api/sohbet/<sid>", methods=["GET", "DELETE"])
+def api_sohbet_detay(sid):
+    ep = session.get("uye_eposta", "")
+    if not ep:
+        return jsonify({"ok": False}), 401
+    tum_veri = _sohbetleri_oku()
+    liste = tum_veri.get(ep, [])
+    if request.method == "DELETE":
+        tum_veri[ep] = [s for s in liste if s["id"] != sid]
+        _sohbetleri_yaz(tum_veri)
+        return jsonify({"ok": True})
+    for s in liste:
+        if s["id"] == sid:
+            return jsonify({"ok": True, "sohbet": s})
+    return jsonify({"ok": False}), 404
+
+@app.route("/api/sohbet_kaydet", methods=["POST"])
+def api_sohbet_kaydet():
+    ep = session.get("uye_eposta", "")
+    if not ep:
+        return jsonify({"ok": False})
+    veri = request.get_json(silent=True) or {}
+    sid = veri.get("id") or secrets.token_hex(6)
+    soru = (veri.get("soru") or "").strip()
+    cevap = (veri.get("cevap") or "").strip()
+    if not soru:
+        return jsonify({"ok": False})
+    tum_veri = _sohbetleri_oku()
+    liste = tum_veri.get(ep, [])
+    bulundu = None
+    for s in liste:
+        if s["id"] == sid:
+            bulundu = s
+            break
+    if not bulundu:
+        baslik = (soru[:38] + "...") if len(soru) > 38 else soru
+        bulundu = {"id": sid, "baslik": baslik, "mesajlar": []}
+        liste.insert(0, bulundu)
+    bulundu["mesajlar"].append({"soru": soru, "cevap": cevap})
+    tum_veri[ep] = liste[:50]
+    _sohbetleri_yaz(tum_veri)
+    return jsonify({"ok": True, "id": sid})
 
 
 if __name__ == '__main__':
