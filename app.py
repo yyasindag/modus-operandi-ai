@@ -474,7 +474,7 @@ def google_callback():
         info_url = f"https://{tok_host}/tokeninfo?id_token=" + urllib.parse.quote(id_token)
         uinfo = json.loads(urllib.request.urlopen(info_url, timeout=10).read().decode("utf-8"))
         ep = str(uinfo.get("email", "")).strip().lower()
-        kisa = ep.split("@") if "@" in ep else ep
+        kisa = ep.split("@")[0] if "@" in ep else ep
         ad = str(uinfo.get("name", kisa)).strip() or kisa
         if ep:
             u = _uyeler()
@@ -616,6 +616,26 @@ def temizle_kesin():
 @app.route("/gizlilik")
 def gizlilik():
     return "<h2>Modus Operandi ai — Gizlilik Politikası</h2><p>Kullanıcı bilgileri yalnızca oturum açma ve sohbet geçmişini saklama amacıyla kullanılır; üçüncü taraflarla paylaşılmaz.</p>"
+
+
+@app.route("/uyeler_yonetim")
+def uyeler_yonetim():
+    anahtar = os.environ.get("ADMIN_KEY", "modus2026").strip()
+    if request.args.get("key", "") != anahtar:
+        return "Yetkisiz erisim.", 403
+    u = _uyeler()
+    if request.args.get("indir") == "csv":
+        satirlar = ["Ad Soyad,Kullanici Adi,E-posta"]
+        for ep, d in u.items():
+            satirlar.append(f'"{d.get("ad","")}","{d.get("kullanici_adi","")}","{ep}"')
+        from flask import Response
+        return Response("\n".join(satirlar), mimetype="text/csv", headers={"Content-Disposition": "attachment;filename=modus_uyeler.csv"})
+    rows = "".join([f"<tr><td>{i+1}</td><td>{d.get('ad','')}</td><td>{d.get('kullanici_adi','')}</td><td>{ep}</td></tr>" for i, (ep, d) in enumerate(u.items())])
+    return f"""<html><head><meta charset='utf-8'><title>Modus Operandi ai — Üyeler</title>
+    <style>body{{font-family:sans-serif;background:#faf8f5;padding:30px;color:#1a1815}}table{{width:100%;border-collapse:collapse;background:#fff;margin-top:16px}}th,td{{border:1px solid #e5e0d8;padding:10px;text-align:left}}th{{background:#f3efe8}}.btn{{display:inline-block;padding:10px 16px;background:#b48228;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}}</style></head>
+    <body><h2>Kayıtlı Üyeler ({len(u)} Kişi)</h2><a class='btn' href='?key={anahtar}&indir=csv'>Excel / CSV İndir</a>
+    <table><tr><th>#</th><th>Ad Soyad</th><th>Kullanıcı Adı</th><th>E-posta</th></tr>{rows}</table></body></html>"""
+
 
 if __name__ == '__main__':
     kitaplari_indeksle()
