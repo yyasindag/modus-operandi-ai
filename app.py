@@ -418,8 +418,6 @@ def apple_callback():
             if tam_ad: ad = tam_ad
         if ep:
             u = _uyeler()
-    db_durum = "✅ Neon PostgreSQL Bağlı (Kalıcı)" if _pg_baglan() else "⚠️ Yerel Dosya (DATABASE_URL bekleniyor)"
-    mail_durum = "✅ Resend Aktif" if os.environ.get("RESEND_API_KEY", "").strip() else "⚠️ RESEND_API_KEY bekleniyor"
 
             if ep not in u:
                 u[ep] = {"ad": ad, "kullanici_adi": ep.split("@"), "eposta": ep, "sifre": secrets.token_hex(12)}
@@ -630,6 +628,8 @@ def gizlilik():
 
 @app.route("/uyeler_yonetim")
 def uyeler_yonetim():
+    db_durum = "✅ Neon PostgreSQL Bağlı (Kalıcı)" if _pg_baglan() else "⚠️ Yerel Dosya (DATABASE_URL bekleniyor)"
+    mail_durum = "✅ Resend Aktif" if os.environ.get("RESEND_API_KEY", "").strip() else "⚠️ RESEND_API_KEY bekleniyor"
     anahtar = os.environ.get("ADMIN_KEY", "modus2026").strip()
     if request.args.get("key", "") != anahtar:
         return "Yetkisiz erisim.", 403
