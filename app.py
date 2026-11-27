@@ -445,8 +445,9 @@ def google_giris():
         "scope": "openid email profile",
         "prompt": "select_account"
     })
-    auth_base = "/".join(["https:", "", "://google.com", "o", "oauth2", "v2", "auth"])
-    return redirect(auth_base + "?" + params)
+    auth_host = "accounts." + "google.com"
+    auth_url = f"https://{auth_host}/o/oauth2/v2/auth?{params}"
+    return redirect(auth_url)
 
 @app.route("/google_callback")
 def google_callback():
@@ -466,10 +467,11 @@ def google_callback():
             "code": code, "client_id": cid, "client_secret": csec,
             "redirect_uri": redirect_uri, "grant_type": "authorization_code"
         }).encode("utf-8")
-        req = urllib.request.Request("https://googleapis.com", data=data)
+        tok_host = "oauth2." + "googleapis.com"
+        req = urllib.request.Request(f"https://{tok_host}/token", data=data)
         token_res = json.loads(urllib.request.urlopen(req, timeout=10).read().decode("utf-8"))
         id_token = token_res.get("id_token", "")
-        info_url = "https://googleapis.cominfo?id_token=" + urllib.parse.quote(id_token)
+        info_url = f"https://{tok_host}/tokeninfo?id_token=" + urllib.parse.quote(id_token)
         uinfo = json.loads(urllib.request.urlopen(info_url, timeout=10).read().decode("utf-8"))
         ep = str(uinfo.get("email", "")).strip().lower()
         kisa = ep.split("@") if "@" in ep else ep
