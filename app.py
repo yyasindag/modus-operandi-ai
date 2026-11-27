@@ -153,7 +153,7 @@ def yanit_olustur(soru, gecmis):
     akad_metin, akad_kaynak = openalex_ve_crossref_ara(terimler)
     kitap_baglam = "".join(f"\n{k['metin'][:850]}\n" for k in onc + dig)
     kaynaklar = [{"baslik": f"K|{k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in onc] + [{"baslik": f"K|{k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in dig] + akad_kaynak
-    sistem = "Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Cevabının EN ALTINA mutlaka 'Kaynakça' başlığı açarak kullandığın kitap sayfalarını ve güncel akademik makaleleri listele."
+    sistem = "Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Metin içinde ayrıca 'Kaynakça' başlığı açma; kaynaklar sistem tarafından otomatik eklenecektir."
     son_icerik = f"Kullanıcı Sorusu: {soru}\n\n[KÜTÜPHANE VERİLERİ]:\n{kitap_baglam}\n\n[ONAYLI HAKEMLİ MAKALELER (DOI REFERANSLI)]:\n{akad_metin}"
     cevap = gemini_bulut_sor(gecmis, sistem, son_icerik) or openrouter_bulut_sor(gecmis, sistem, son_icerik)
     if cevap and "[GERÇEK AKADEMİK MAKALELER]" in cevap:
@@ -418,6 +418,9 @@ def apple_callback():
             if tam_ad: ad = tam_ad
         if ep:
             u = _uyeler()
+    db_durum = "✅ Neon PostgreSQL Bağlı (Kalıcı)" if _pg_baglan() else "⚠️ Yerel Dosya (DATABASE_URL bekleniyor)"
+    mail_durum = "✅ Resend Aktif" if os.environ.get("RESEND_API_KEY", "").strip() else "⚠️ RESEND_API_KEY bekleniyor"
+
             if ep not in u:
                 u[ep] = {"ad": ad, "kullanici_adi": ep.split("@"), "eposta": ep, "sifre": secrets.token_hex(12)}
                 json.dump(u, open(UYELER_D, "w", encoding="utf-8"), ensure_ascii=False)
@@ -640,7 +643,7 @@ def uyeler_yonetim():
     rows = "".join([f"<tr><td>{i+1}</td><td>{d.get('ad','')}</td><td>{d.get('kullanici_adi','')}</td><td>{ep}</td></tr>" for i, (ep, d) in enumerate(u.items())])
     return f"""<html><head><meta charset='utf-8'><title>Modus Operandi ai — Üyeler</title>
     <style>body{{font-family:sans-serif;background:#faf8f5;padding:30px;color:#1a1815}}table{{width:100%;border-collapse:collapse;background:#fff;margin-top:16px}}th,td{{border:1px solid #e5e0d8;padding:10px;text-align:left}}th{{background:#f3efe8}}.btn{{display:inline-block;padding:10px 16px;background:#b48228;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}}</style></head>
-    <body><h2>Kayıtlı Üyeler ({len(u)} Kişi)</h2><a class='btn' href='?key={anahtar}&indir=csv'>Excel / CSV İndir</a>
+    <body><div style='background:#fff;border:1px solid #e5e0d8;padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:13.5px'><b>Veritabanı Durumu:</b> {db_durum} &nbsp;|&nbsp; <b>E-posta Sistemi:</b> {mail_durum}</div><h2>Kayıtlı Üyeler ({len(u)} Kişi)</h2><a class='btn' href='?key={anahtar}&indir=csv'>Excel / CSV İndir</a>
     <table><tr><th>#</th><th>Ad Soyad</th><th>Kullanıcı Adı</th><th>E-posta</th></tr>{rows}</table></body></html>"""
 
 
