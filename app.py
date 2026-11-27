@@ -1,17 +1,18 @@
-import gzip, json, base64
+from flask import redirect
+import secrets, uuid
 import random
 import os, re, glob, time, operator, fitz, requests
 from flask import Flask, render_template, request, session
 
 app = Flask(__name__)
 SOHBET_DEPO = {}
-app.secret_key = "eksimaya_gizli_sohbet_anahtari_2026"
+app.secret_key = secrets.token_hex(16)
 
 gemini_dosya = os.path.expanduser("~/.maya_anahtar")
 openrouter_dosya = os.path.expanduser("~/.openrouter_anahtar")
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip() or (open(gemini_dosya).read().strip() if os.path.exists(gemini_dosya) else "")
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip() or (open(openrouter_dosya).read().strip() if os.path.exists(openrouter_dosya) else "")
+GEMINI_API_KEY = open(gemini_dosya).read().strip() if os.path.exists(gemini_dosya) else ""
+OPENROUTER_API_KEY = open(openrouter_dosya).read().strip() if os.path.exists(openrouter_dosya) else ""
 
 GEMINI_MODELLER = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
 ONCELIKLI_SAYFALAR = []
@@ -36,15 +37,6 @@ FIRINCILIK_SOZLUGU = {
 }
 
 def kitaplari_indeksle():
-    global ONCELIKLI_SAYFALAR, DIGER_SAYFALAR
-    _base_dir = os.path.dirname(os.path.abspath(__file__))
-    _gz_yol = os.path.join(_base_dir, "kutuphane_indeks.json.gz")
-    if os.path.exists(_gz_yol):
-        _d = json.load(gzip.open(_gz_yol, "rt", encoding="utf-8"))
-        ONCELIKLI_SAYFALAR, DIGER_SAYFALAR = _d.get("oncelikli", []), _d.get("diger", [])
-        print(f"⭐ Bulut Indeks Yuklendi: {len(ONCELIKLI_SAYFALAR) + len(DIGER_SAYFALAR)} sayfa!")
-        return
-def _eski_indeksle():
     global ONCELIKLI_SAYFALAR, DIGER_SAYFALAR
     ONCELIKLI_SAYFALAR, DIGER_SAYFALAR = [], []
     for klasor, hedef in [("~/kitaplar/oncelikli/*.pdf", ONCELIKLI_SAYFALAR), ("~/kitaplar/*.pdf", DIGER_SAYFALAR)]:
@@ -91,47 +83,28 @@ def yerel_kitap_ara(havuz, kelimeler, limit=2):
         if len(secilenler) >= limit: break
     return secilenler
 
-def openalex_ve_crossref_ara(terimler):
-    if isinstance(terimler, list):
-        sorgu = " ".join(str(x) for x in terimler[:4] if x)
-    else:
-        sorgu = str(terimler or "").strip()
-    if len(sorgu) < 3:
-        sorgu = "sourdough bread fermentation dough"
-    hdr = {"User-Agent": "ModusOperandiAI/1.0 (mailto:info@modusoperandi.ai)"}
-    metinler, kaynaklar = [], []
+def openalex_ve_crossref_ara(kelimeler):
+    sorgu_en = " ".join(kelimeler[:2]) + " wheat sourdough bread"
+    kaynaklar, ozetler = [], ""
+    s = chr(47)
     try:
-        u1 = "https:" + chr(47)*2 + "api.openalex.org" + chr(47) + "works"
-        r = requests.get(u1, params={"search": sorgu, "per-page": 4, "sort": "cited_by_count:desc"}, headers=hdr, timeout=12)
-        if r.status_code == 200:
-            for w in r.json().get("results", []):
-                baslik = w.get("title") or ""
-                yil = w.get("publication_year") or ""
-                doi = w.get("doi") or ""
-                atif = w.get("cited_by_count", 0)
-                dergi = ((w.get("primary_location") or {}).get("source") or {}).get("display_name") or "Akademik Dergi"
-                if baslik:
-                    metinler.append(f"- ({yil}) {baslik} ({dergi}, {atif} atif) {doi}")
-                    kaynaklar.append({"baslik": f"🎓 ({yil}) {baslik} — {dergi} ({atif} atıf)", "link": doi or "#"})
+        oa_url = f"https:{s}{s}api.openalex.org{s}works?search={requests.utils.quote(sorgu_en)}&filter=has_doi:true,publication_year:2018-2026&sort=cited_by_count:desc&per-page=5"
+        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@eksimaya.ai"}, timeout=5)
+        if res.status_code == 200:
+            for item in res.json().get("results", []):
+                baslik = item.get("title") or "Akademik Yayın"
+                yil = item.get("publication_year", "")
+                atif = item.get("cited_by_count", 0)
+                doi = item.get("doi") or "#"
+                yazarlar = item.get("authorships", [])
+                yazar = next(iter(yazarlar)).get("author", {}).get("display_name", "Araştırma Ekibi") if yazarlar else "Araştırma Ekibi"
+                dergi = (item.get("primary_location") or {}).get("source", {})
+                dergi_adi = dergi.get("display_name", "Hakemli Bilim Dergisi") if dergi else "Hakemli Bilim Dergisi"
+                ozetler += f"- [{yil}] {baslik} | Yazar: {yazar} vd. | Dergi: {dergi_adi} | Atıf: {atif}\n"
+                kaynaklar.append({"baslik": f"🎓 ({yil}) {baslik} — {dergi_adi} ({atif} atıf)", "link": doi})
     except Exception:
         pass
-    if not kaynaklar:
-        try:
-            u2 = "https:" + chr(47)*2 + "api.crossref.org" + chr(47) + "works"
-            r2 = requests.get(u2, params={"query": sorgu, "rows": 3}, headers=hdr, timeout=12)
-            if r2.status_code == 200:
-                for it in r2.json().get("message", {}).get("items", []):
-                    t_list = it.get("title") or []
-                    baslik = next(iter(t_list), "")
-                    d_parts = ((it.get("published") or {}).get("date-parts") or [[]])
-                    yil = next(iter(next(iter(d_parts), [])), "")
-                    doi = it.get("URL") or ""
-                    if baslik:
-                        metinler.append(f"- ({yil}) {baslik} {doi}")
-                        kaynaklar.append({"baslik": f"🎓 ({yil}) {baslik} — CrossRef Hakemli Yayın", "link": doi or "#"})
-        except Exception:
-            pass
-    return "\n".join(metinler), kaynaklar
+    return ozetler, kaynaklar
 
 def gemini_bulut_sor(gecmis, sistem, son_icerik):
     if not GEMINI_API_KEY: return None
@@ -149,21 +122,16 @@ def gemini_bulut_sor(gecmis, sistem, son_icerik):
     return None
 
 def openrouter_bulut_sor(gecmis, sistem, son_icerik):
-    k = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    if not k and os.path.exists(os.path.expanduser("~/.openrouter_anahtar")):
-        k = open(os.path.expanduser("~/.openrouter_anahtar")).read().strip()
-    if not k:
-        return None
-    url = "https:" + chr(47)*2 + "openrouter." + chr(97) + chr(105) + chr(47) + "api" + chr(47) + "v1" + chr(47) + "chat" + chr(47) + "completions"
-    hdr = {"Authorization": "Bearer " + k, "Content-Type": "application/json", "HTTP-Referer": "https://onrender.com", "X-Title": "Modus Operandi AI"}
-    mesajlar = [{"role": "system", "content": sistem}, {"role": "user", "content": son_icerik[:2600]}]
-    for mod in ["anthropic/claude-haiku-4.5", "anthropic/claude-3.5-haiku", "google/gemma-3-27b-it:free"]:
+    if not OPENROUTER_API_KEY: return None
+    s = chr(47)
+    url = f"https:{s}{s}openrouter.ai{s}api{s}v1{s}chat{s}completions"
+    headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
+    mesajlar = [{"role": "system", "content": sistem}] + [{"role": "assistant" if m["role"] == "model" else "user", "content": m["text"]} for m in gecmis[-6:]] + [{"role": "user", "content": son_icerik}]
+    for m_or in ["meta-llama/llama-3.3-70b-instruct:free", "google/gemma-3-27b-it:free", "qwen/qwen3-32b:free", "openrouter/free"]:
         try:
-            r = requests.post(url, headers=hdr, json={"model": mod, "messages": mesajlar}, timeout=25)
-            if r.status_code == 200 and r.text.strip().startswith("{"):
-                ch = r.json().get("choices", [])
-                if ch:
-                    return next(iter(ch))["message"]["content"]
+            res = requests.post(url, headers=headers, json={"model": m_or, "messages": mesajlar, "temperature": 0.2}, timeout=5)
+            if res.status_code == 200:
+                return next(iter(res.json().get("choices", []))).get("message", {}).get("content")
         except Exception:
             continue
     return None
@@ -172,23 +140,14 @@ def yanit_olustur(soru, gecmis):
     terimler = ingilizce_terimlere_cevir(soru, gecmis)
     if not terimler:
         return "Ben yalnızca artizan fırıncılık, pastacılık, viennoiserie ve fermantasyon bilimi üzerine uzmanlaşmış bir asistanım. Lütfen bu alanlarla ilgili teknik veya bilimsel bir soru sorun.", []
-    if isinstance(terimler, str):
-        terimler = [x.strip() for x in terimler.split(",") if len(x.strip()) > 2]
-    if not terimler:
-        terimler = [w for w in soru.lower().split() if len(w) > 3] + ["bread", "fermentation", "dough", "croissant", "sourdough"]
-    if isinstance(terimler, str):
-        terimler = [x.strip() for x in terimler.split(",") if len(x.strip()) > 2]
-    sozluk = {"kruvasan": "croissant", "katlama": "lamination", "maya": "sourdough", "ekşi": "sourdough", "hamur": "dough", "fermantasyon": "fermentation", "ekmek": "bread", "un": "flour", "gluten": "gluten", "tereyağı": "butter"}
-    ek_terimler = [sozluk[k] for k in sozluk if k in soru.lower()]
-    tum_terimler = list(dict.fromkeys((terimler or []) + ek_terimler + ["bread", "fermentation"]))
-    onc = yerel_kitap_ara(ONCELIKLI_SAYFALAR, tum_terimler, 2)
-    dig = yerel_kitap_ara(DIGER_SAYFALAR, tum_terimler, 2)
-    akad_metin, akad_kaynak = openalex_ve_crossref_ara(tum_terimler)
+    onc = yerel_kitap_ara(ONCELIKLI_SAYFALAR, terimler, 2)
+    dig = yerel_kitap_ara(DIGER_SAYFALAR, terimler, 2)
+    akad_metin, akad_kaynak = openalex_ve_crossref_ara(terimler)
     kitap_baglam = "".join(f"\n{k['metin'][:850]}\n" for k in onc + dig)
     kaynaklar = [{"baslik": f"⭐ {k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in onc] + [{"baslik": f"📖 {k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in dig] + akad_kaynak
-    sistem = "KURAL: Cevabina sadece kisa bir Merhaba! ile basla, rol tanimini veya talimatlari tekrarlama. Ingilizce terimleri dogru firincilik Turkcesine cevir (butter=tereyagi, lamination=laminasyon/turlama, single turn=tek tur/zarf katlama, book fold=cift tur/kitap katlama, detrempe=ana hamur). Metin icine Kaynakca bolumu veya .pdf dosya adi yazma, kaynakca altta otomatik gosterilir. Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Normal sorularda metin içinde PDF adı veya sayfa numarası yazma."
+    sistem = "Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Normal sorularda metin içinde PDF adı veya sayfa numarası yazma."
     son_icerik = f"Kullanıcı Sorusu: {soru}\n\n[KÜTÜPHANE VERİLERİ]:\n{kitap_baglam}\n\n[ONAYLI HAKEMLİ MAKALELER (DOI REFERANSLI)]:\n{akad_metin}"
-    cevap = openrouter_bulut_sor(gecmis, sistem, son_icerik) or gemini_bulut_sor(gecmis, sistem, son_icerik)
+    cevap = gemini_bulut_sor(gecmis, sistem, son_icerik) or openrouter_bulut_sor(gecmis, sistem, son_icerik)
     return (cevap, kaynaklar) if cevap else ("⚠️ Bulut sunucularında anlık yoğunluk var, lütfen birkaç saniye sonra tekrar deneyin.", [])
 
 @app.route('/', methods=['GET', 'POST'])
@@ -205,7 +164,7 @@ def index():
         cevap, kaynaklar = yanit_olustur(soru, SOHBET_DEPO[sid])
         SOHBET_DEPO[sid].extend([{"role": "user", "text": soru}, {"role": "model", "text": cevap, "kaynaklar": kaynaklar}])
         pass
-    return render_template('index.html', sohbet=SOHBET_DEPO[sid], pdf_sayisi=pdf_sayisi)
+    session['sid'] = sid; _sh = session.get('uye_eposta'); _gc = _gecmis().get(_sh, []) if _sh else []; return render_template('index.html', sohbet=SOHBET_DEPO[sid], pdf_sayisi=pdf_sayisi, gecmis_listesi=_gc)
 
 @app.route("/cikis")
 def cikis():
@@ -217,6 +176,19 @@ ISLER = {}
 
 @app.route("/sor", methods=["GET", "POST"])
 def api_sor():
+    import time
+    if not session.get("pro_yetkili") and not session.get("uye_eposta"):
+        simdi = time.time()
+        if simdi - session.get("kota_baslangic", 0) >= 86400:
+            session["kota_baslangic"] = simdi
+            session["kota_sayi"] = 0
+        if session.get("kota_sayi", 0) >= 5:
+            if session.get("ek_soru_hakki", 0) > 0:
+                session["ek_soru_hakki"] = session.get("ek_soru_hakki", 0) - 1
+            else:
+                return jsonify({"hata": "Günlük 5 ücretsiz soru hakkınız doldu.", "limit_doldu": True}), 429
+        else:
+            session["kota_sayi"] = session.get("kota_sayi", 0) + 1
     soru = (request.args.get("q") or "").strip()
     if not soru: return {"ok": False}
     jid = str(random.randint(100000, 999999))
@@ -235,10 +207,12 @@ def api_sor():
 def api_durum(jid):
     return ISLER.get(jid, {"durum": "bekliyor"})
 
-@app.route('/temizle')
 def temizle():
+    _sid = session.get('sid'); _m = SOHBET_DEPO.get(_sid, []) if _sid else []; _sh = session.get('uye_eposta');
+    if _m and _sh:
+        _g = _gecmis(); _l = _g.get(_sh, []); _b = next((x['text'][:42] for x in _m if x.get('role') == 'user'), 'Sohbet'); _l.insert(0, {'id': str(uuid.uuid4())[:8], 'baslik': _b, 'mesajlar': list(_m)}); _g[_sh] = _l[:25]; json.dump(_g, open(GECMIS_D, 'w', encoding='utf-8'), ensure_ascii=False)
     SOHBET_DEPO.clear()
-    return render_template('index.html', sohbet=[], pdf_sayisi=len(glob.glob(os.path.expanduser("~/kitaplar/oncelikli/*.pdf"))) + len(glob.glob(os.path.expanduser("~/kitaplar/*.pdf"))))
+    return redirect('/')
 
 URUN_LISTE_DOSYASI = os.path.expanduser("~/gunluk_urun_listesi.json")
 
@@ -268,7 +242,7 @@ def uye_kaydet(kullanici, eposta, sifre, plan, odeme_turu):
     uyeler[kullanici.lower()] = {"ad": kullanici, "eposta": eposta, "sifre": sifre, "plan": plan, "odeme": odeme_turu, "tarih": time.strftime("%Y-%m-%d")}
     json.dump(uyeler, open(UYELER_DOSYASI, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
-@app.route('/pro', methods=['GET', 'POST'])
+@app.route('/_eski_pro', methods=['GET', 'POST'])
 def pro():
     if request.method == "POST":
         islem = request.form.get("islem", "")
@@ -383,6 +357,190 @@ def pro():
 def no_cache(r):
     r.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return r
+
+
+UYELER_D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uyeler_eposta.json")
+GECMIS_D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sohbet_gecmisi.json")
+
+def _uyeler():
+    try: return json.load(open(UYELER_D, "r", encoding="utf-8")) if os.path.exists(UYELER_D) else {}
+    except Exception: return {}
+
+def _gecmis():
+    try: return json.load(open(GECMIS_D, "r", encoding="utf-8")) if os.path.exists(GECMIS_D) else {}
+    except Exception: return {}
+
+
+@app.route("/apple_giris")
+def apple_giris():
+    import urllib.parse
+    cid = os.environ.get("APPLE_CLIENT_ID", "").strip()
+    if not cid:
+        session["uye_mesaj"] = "Apple ile giriş şu anda yapılandırılıyor. Google veya e-posta ile giriş yapabilirsiniz."
+        return redirect("/")
+    redirect_uri = request.url_root.rstrip("/") + "/apple_callback"
+    params = urllib.parse.urlencode({
+        "client_id": cid,
+        "redirect_uri": redirect_uri,
+        "response_type": "code id_token",
+        "scope": "name email",
+        "response_mode": "form_post"
+    })
+    return redirect("https://apple.com?" + params)
+
+@app.route("/apple_callback", methods=["POST"])
+def apple_callback():
+    import base64
+    id_token = request.form.get("id_token", "")
+    user_raw = request.form.get("user", "")
+    if not id_token or "." not in id_token:
+        session["uye_mesaj"] = "Apple hesabı doğrulanamadı."
+        return redirect("/")
+    try:
+        payload_b64 = id_token.split(".")[1] + "=="
+        claims = json.loads(base64.urlsafe_b64decode(payload_b64).decode("utf-8"))
+        ep = claims.get("email", "").strip().lower()
+        ad = ep.split("@") if "@" in ep else "Apple Üyesi"
+        if user_raw:
+            u_obj = json.loads(user_raw)
+            nm = u_obj.get("name", {})
+            tam_ad = f"{nm.get('firstName', '')} {nm.get('lastName', '')}".strip()
+            if tam_ad: ad = tam_ad
+        if ep:
+            u = _uyeler()
+            if ep not in u:
+                u[ep] = {"ad": ad, "kullanici_adi": ep.split("@"), "eposta": ep, "sifre": secrets.token_hex(12)}
+                json.dump(u, open(UYELER_D, "w", encoding="utf-8"), ensure_ascii=False)
+            session["uye_eposta"] = ep
+            session["uye_ad"] = u[ep].get("ad", ad)
+            session.pop("uye_mesaj", None)
+    except Exception:
+        session["uye_mesaj"] = "Apple girişi tamamlanamadı."
+    return redirect("/")
+
+@app.route("/uye_islem", methods=["POST"])
+def uye_islem():
+    tur = request.form.get("tur", "giris")
+    ep = request.form.get("eposta", "").strip().lower()
+    k_ad = request.form.get("kullanici_adi", "").strip().lower()
+    sf = request.form.get("sifre", "").strip()
+    ad = request.form.get("ad", "").strip()
+    u = _uyeler()
+    if tur == "kayit":
+        if not ad or not k_ad or "@" not in ep or not sf:
+            session["uye_mesaj"] = "Lütfen Ad Soyad, Kullanıcı Adı, geçerli E-posta ve Şifre alanlarını eksiksiz doldurun."
+            return redirect("/")
+        if ep in u or any(str(v.get("kullanici_adi", "")).lower() == k_ad for v in u.values()):
+            session["uye_mesaj"] = "Bu kullanıcı adı veya e-posta zaten kayıtlı."
+            return redirect("/")
+        u[ep] = {"ad": ad, "kullanici_adi": k_ad, "eposta": ep, "sifre": sf}
+        json.dump(u, open(UYELER_D, "w", encoding="utf-8"), ensure_ascii=False)
+        session["uye_eposta"] = ep
+        session["uye_ad"] = f"{ad} (@{k_ad})"
+        session.pop("uye_mesaj", None)
+    elif tur == "giris":
+        giris_id = ep
+        bulunan_ep, bulunan_u = None, None
+        for mail_key, veri in u.items():
+            if mail_key == giris_id or str(veri.get("kullanici_adi", "")).lower() == giris_id:
+                bulunan_ep, bulunan_u = mail_key, veri
+                break
+        if bulunan_u and str(bulunan_u.get("sifre", "")) == sf:
+            session["uye_eposta"] = bulunan_ep
+            session["uye_ad"] = f"{bulunan_u.get('ad', '')} (@{bulunan_u.get('kullanici_adi', '')})"
+            session.pop("uye_mesaj", None)
+        else:
+            session["uye_mesaj"] = "Hatalı kullanıcı adı, e-posta veya şifre."
+    elif tur == "cikis":
+        session.clear()
+    return redirect("/")
+
+@app.route("/sifre_sifirla", methods=["POST"])
+def sifre_sifirla():
+    import random, smtplib
+    from email.message import EmailMessage
+    adim = request.form.get("adim", "kod_gonder")
+    ep = request.form.get("eposta", "").strip().lower()
+    u = _uyeler()
+    if adim == "kod_gonder":
+        if ep not in u:
+            session["uye_mesaj"] = "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı."
+            return redirect("/")
+        dogrulama_kodu = str(random.randint(100000, 999999))
+        session["reset_eposta"] = ep
+        session["reset_kod"] = dogrulama_kodu
+        session["reset_adim"] = "kod_dogrula"
+        smtp_user = os.environ.get("SMTP_EMAIL", "")
+        smtp_pass = os.environ.get("SMTP_PASS", "")
+        if smtp_user and smtp_pass:
+            try:
+                msg = EmailMessage()
+                msg["Subject"] = "Modus Operandi AI — Hesap Bilgileri ve Şifre Sıfırlama"
+                msg["From"] = smtp_user
+                msg["To"] = ep
+                msg.set_content(f"Merhaba {u[ep].get('ad','')},\n\nKayıtlı Kullanıcı Adınız: {u[ep].get('kullanici_adi', ep)} | E-posta: {ep}\nŞifre Sıfırlama Kodunuz: {dogrulama_kodu}\n\nModus Operandi AI")
+                with smtplib.SMTP_SSL("://gmail.com", 465) as s:
+                    s.login(smtp_user, smtp_pass)
+                    s.send_message(msg)
+                session["uye_bilgi"] = f"Doğrulama kodu ve kullanıcı adı bilginiz {ep} adresine gönderildi."
+            except Exception:
+                session["uye_bilgi"] = f"Sıfırlama kodunuz hazır (Test Kodu: {dogrulama_kodu})."
+        else:
+            session["uye_bilgi"] = f"Sıfırlama kodunuz oluşturuldu (Kod: {dogrulama_kodu})."
+    elif adim == "yeni_sifre":
+        girilen_kod = request.form.get("kod", "").strip()
+        yeni_sf = request.form.get("yeni_sifre", "").strip()
+        hedef_ep = session.get("reset_eposta", "")
+        if girilen_kod != session.get("reset_kod") or not yeni_sf or hedef_ep not in u:
+            session["uye_mesaj"] = "Doğrulama kodu hatalı veya eksik!"
+            return redirect("/")
+        u[hedef_ep]["sifre"] = yeni_sf
+        json.dump(u, open(UYELER_D, "w", encoding="utf-8"), ensure_ascii=False)
+        session["uye_eposta"] = hedef_ep
+        session["uye_ad"] = u[hedef_ep].get("ad", hedef_ep)
+        for k in ["reset_eposta", "reset_kod", "reset_adim", "uye_mesaj", "uye_bilgi"]:
+            session.pop(k, None)
+    return redirect("/")
+
+@app.route("/gecmis_yukle/<gid>")
+def gecmis_yukle(gid):
+    sahip = session.get("uye_eposta")
+    if not sahip: return redirect("/")
+    for it in _gecmis().get(sahip, []):
+        if it.get("id") == gid and session.get("sid"):
+            SOHBET_DEPO[session["sid"]] = list(it.get("mesajlar", []))
+    return redirect("/")
+
+@app.route("/paketler", methods=["GET", "POST"])
+def paketler():
+    mesaj = None
+    if request.method == "POST":
+        adet = int(request.form.get("adet", 0))
+        if adet > 0:
+            session["ek_soru_hakki"] = session.get("ek_soru_hakki", 0) + adet
+            mesaj = f"✅ Paket tanımlandı! Mevcut ek soru bakiyeniz: {session['ek_soru_hakki']} Hak"
+    return render_template("paketler.html", mesaj=mesaj)
+
+
+@app.route("/pro", methods=["GET", "POST"])
+def pro_kapali():
+    return redirect("/")
+
+@app.route("/temizle")
+def temizle_kesin():
+    import uuid
+    sid = session.get("sid")
+    m = SOHBET_DEPO.get(sid, []) if sid else []
+    sh = session.get("uye_eposta")
+    if m and sh:
+        g = _gecmis()
+        l = g.get(sh, [])
+        b = next((x["text"][:42] for x in m if x.get("role") == "user"), "Sohbet")
+        l.insert(0, {"id": str(uuid.uuid4())[:8], "baslik": b, "mesajlar": list(m)})
+        g[sh] = l[:25]
+        json.dump(g, open(GECMIS_D, "w", encoding="utf-8"), ensure_ascii=False)
+    SOHBET_DEPO.clear()
+    return redirect("/")
 
 if __name__ == '__main__':
     kitaplari_indeksle()
