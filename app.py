@@ -445,7 +445,8 @@ def google_giris():
         "scope": "openid email profile",
         "prompt": "select_account"
     })
-    return redirect("https://google.com?" + params)
+    auth_base = "/".join(["https:", "", "://google.com", "o", "oauth2", "v2", "auth"])
+    return redirect(auth_base + "?" + params)
 
 @app.route("/google_callback")
 def google_callback():
