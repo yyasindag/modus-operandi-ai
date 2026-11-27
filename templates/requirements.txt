@@ -1,0 +1,5 @@
+flask
+gunicorn
+requests
+pymupdf
+google-genai
