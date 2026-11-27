@@ -437,7 +437,7 @@ def google_giris():
     kok = request.url_root.rstrip("/")
     if "127.0.0.1" not in kok and "localhost" not in kok and kok.startswith("http://"):
         kok = "https://" + kok[7:]
-    redirect_uri = kok + "/google_callback"
+    redirect_uri = "http://localhost:5000/google_callback" if ("127.0.0.1" in kok or "localhost" in kok) else "https://" + "://modusoperandiai.com"
     params = urllib.parse.urlencode({
         "client_id": cid,
         "redirect_uri": redirect_uri,
@@ -462,7 +462,7 @@ def google_callback():
         kok = request.url_root.rstrip("/")
         if "127.0.0.1" not in kok and "localhost" not in kok and kok.startswith("http://"):
             kok = "https://" + kok[7:]
-        redirect_uri = kok + "/google_callback"
+        redirect_uri = "http://localhost:5000/google_callback" if ("127.0.0.1" in kok or "localhost" in kok) else "https://" + "://modusoperandiai.com"
         data = urllib.parse.urlencode({
             "code": code, "client_id": cid, "client_secret": csec,
             "redirect_uri": redirect_uri, "grant_type": "authorization_code"
