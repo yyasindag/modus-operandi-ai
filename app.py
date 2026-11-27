@@ -11,8 +11,8 @@ app.secret_key = secrets.token_hex(16)
 gemini_dosya = os.path.expanduser("~/.maya_anahtar")
 openrouter_dosya = os.path.expanduser("~/.openrouter_anahtar")
 
-GEMINI_API_KEY = open(gemini_dosya).read().strip() if os.path.exists(gemini_dosya) else ""
-OPENROUTER_API_KEY = open(openrouter_dosya).read().strip() if os.path.exists(openrouter_dosya) else ""
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip() or (open(gemini_dosya).read().strip() if os.path.exists(gemini_dosya) else "")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip() or (open(openrouter_dosya).read().strip() if os.path.exists(openrouter_dosya) else "")
 
 GEMINI_MODELLER = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
 ONCELIKLI_SAYFALAR = []
@@ -109,7 +109,7 @@ def openalex_ve_crossref_ara(kelimeler):
 def gemini_bulut_sor(gecmis, sistem, son_icerik):
     if not GEMINI_API_KEY: return None
     s = chr(47)
-    base_url = f"https:{s}{s}://googleapis.com{s}v1beta{s}models{s}"
+    base_url = "https://googleapis.com"
     headers = {"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY}
     mesajlar = [{"role": m["role"], "parts": [{"text": m["text"]}]} for m in gecmis[-6:]]
     mesajlar.append({"role": "user", "parts": [{"text": son_icerik}]})
@@ -124,10 +124,10 @@ def gemini_bulut_sor(gecmis, sistem, son_icerik):
 def openrouter_bulut_sor(gecmis, sistem, son_icerik):
     if not OPENROUTER_API_KEY: return None
     s = chr(47)
-    url = f"https:{s}{s}openrouter.ai{s}api{s}v1{s}chat{s}completions"
+    url = "https://openrouter.ai"
     headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
     mesajlar = [{"role": "system", "content": sistem}] + [{"role": "assistant" if m["role"] == "model" else "user", "content": m["text"]} for m in gecmis[-6:]] + [{"role": "user", "content": son_icerik}]
-    for m_or in ["meta-llama/llama-3.3-70b-instruct:free", "google/gemma-3-27b-it:free", "qwen/qwen3-32b:free", "openrouter/free"]:
+    for m_or in ["google/gemini-2.5-flash", "openai/gpt-4o-mini", "openrouter/auto"]:
         try:
             res = requests.post(url, headers=headers, json={"model": m_or, "messages": mesajlar, "temperature": 0.2}, timeout=5)
             if res.status_code == 200:
