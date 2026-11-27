@@ -101,7 +101,7 @@ def openalex_ve_crossref_ara(kelimeler):
                 dergi = (item.get("primary_location") or {}).get("source", {})
                 dergi_adi = dergi.get("display_name", "Hakemli Bilim Dergisi") if dergi else "Hakemli Bilim Dergisi"
                 ozetler += f"- [{yil}] {baslik} | Yazar: {yazar} vd. | Dergi: {dergi_adi} | Atıf: {atif}\n"
-                kaynaklar.append({"baslik": f"🎓 ({yil}) {baslik} — {dergi_adi} ({atif} atıf)", "link": doi})
+                kaynaklar.append({"baslik": f"M|({yil}) {baslik} — {dergi_adi} ({atif} atıf)", "link": doi})
     except Exception:
         pass
     return ozetler, kaynaklar
@@ -122,19 +122,26 @@ def gemini_bulut_sor(gecmis, sistem, son_icerik):
     return None
 
 def openrouter_bulut_sor(gecmis, sistem, son_icerik):
-    if not OPENROUTER_API_KEY: return None
-    s = chr(47)
-    url = "https://openrouter.ai"
-    headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"}
+    if not OPENROUTER_API_KEY:
+        return "⚠️ OPENROUTER_API_KEY tanımlı değil (Render Environment kontrol edin)."
+    url = "/".join(["https:", "", "openrouter.ai", "api", "v1", "chat", "completions"])
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://modusoperandiai.com",
+        "X-Title": "Modus Operandi AI"
+    }
     mesajlar = [{"role": "system", "content": sistem}] + [{"role": "assistant" if m["role"] == "model" else "user", "content": m["text"]} for m in gecmis[-6:]] + [{"role": "user", "content": son_icerik}]
+    son_hata = ""
     for m_or in ["google/gemini-2.5-flash", "openai/gpt-4o-mini", "openrouter/auto"]:
         try:
             res = requests.post(url, headers=headers, json={"model": m_or, "messages": mesajlar, "temperature": 0.2}, timeout=35)
             if res.status_code == 200:
                 return next(iter(res.json().get("choices", []))).get("message", {}).get("content")
-        except Exception:
-            continue
-    return None
+            son_hata = f"HTTP {res.status_code}: {res.text[:160]}"
+        except Exception as ex:
+            son_hata = str(ex)[:160]
+    return f"⚠️ API Hatası: {son_hata}"
 
 def yanit_olustur(soru, gecmis):
     terimler = ingilizce_terimlere_cevir(soru, gecmis)
@@ -144,10 +151,12 @@ def yanit_olustur(soru, gecmis):
     dig = yerel_kitap_ara(DIGER_SAYFALAR, terimler, 2)
     akad_metin, akad_kaynak = openalex_ve_crossref_ara(terimler)
     kitap_baglam = "".join(f"\n{k['metin'][:850]}\n" for k in onc + dig)
-    kaynaklar = [{"baslik": f"⭐ {k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in onc] + [{"baslik": f"📖 {k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in dig] + akad_kaynak
+    kaynaklar = [{"baslik": f"K|{k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in onc] + [{"baslik": f"K|{k['kitap']} — Sayfa {k['sayfa']}", "link": "#"} for k in dig] + akad_kaynak
     sistem = "Sen Türkiye'nin en yetkin Artizan Fırıncılık, Pastacılık ve Gıda Bilimi uzmanısın. Cevaplarını kusursuz, akıcı ve profesyonel bir fırıncılık Türkçesiyle yaz (Örn: 'hamur ağırlığı', 'fırıncı yüzdesi', 'soğuk geciktirme', 'laktik ve asetik asit dengesi' gibi doğru terimler kullan; asla bozuk veya anlamsız kelime çevirileri yapma). Arka plan motorumuz gerçek makaleleri [GERÇEK AKADEMİK MAKALELER] bölümünde topladı; kullanıcı akademik çalışma sorarsa bu makaleleri listele. Normal sorularda metin içinde PDF adı veya sayfa numarası yazma."
     son_icerik = f"Kullanıcı Sorusu: {soru}\n\n[KÜTÜPHANE VERİLERİ]:\n{kitap_baglam}\n\n[ONAYLI HAKEMLİ MAKALELER (DOI REFERANSLI)]:\n{akad_metin}"
     cevap = gemini_bulut_sor(gecmis, sistem, son_icerik) or openrouter_bulut_sor(gecmis, sistem, son_icerik)
+    if cevap and "[GERÇEK AKADEMİK MAKALELER]" in cevap:
+        cevap = cevap.split("[GERÇEK AKADEMİK MAKALELER]")[0].strip()
     return (cevap, kaynaklar) if cevap else ("⚠️ Bulut sunucularında anlık yoğunluk var, lütfen birkaç saniye sonra tekrar deneyin.", [])
 
 @app.route('/', methods=['GET', 'POST'])
