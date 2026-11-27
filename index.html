@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Modus Operandi <span style="font-size:12.5px;font-weight:700;color:#996e17;letter-spacing:0.3px">ai</span></title>
+<title>Modus Operandi</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#fff;color:#1a1a18;height:100vh;display:flex;flex-direction:column}
@@ -46,7 +46,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .app-layout{display:flex;flex:1;overflow:hidden}.sidebar{width:260px;background:#fbfaf7;border-right:1px solid #e5e5e0;display:flex;flex-direction:column;justify-content:space-between;padding:14px;flex-shrink:0}.new-chat-btn{display:block;text-align:center;padding:10px;background:#2c2219;color:#fff;text-decoration:none;border-radius:10px;font-size:13.5px;font-weight:600;margin-bottom:14px}.hist-list{flex:1;overflow-y:auto}.hist-item{display:block;padding:8px 10px;border-radius:8px;text-decoration:none;color:#2c2219;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hist-item:hover{background:#fff}.auth-box{border-top:1px solid #e5e5e0;padding-top:10px}.auth-inp{width:100%;padding:7px 9px;border:1px solid #dcdbd5;border-radius:8px;font-size:12.5px;margin-bottom:6px}.auth-btn{width:100%;padding:7px;background:#fff;border:1px solid #2c2219;color:#2c2219;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer}.main-col{flex:1;display:flex;flex-direction:column;overflow:hidden}@media(max-width:768px){.sidebar{display:none}}</style>
 </head>
 <body>
-<div class="topbar"><a href="/temizle" class="brand" style="text-decoration:none;color:inherit;" title="Ana Sayfaya Dön (Soru Sorma Ekranı)"><div class="logo" style="width:36px;height:32px;border-radius:9px;background:#1a1917;color:#fff;display:flex;align-items:baseline;justify-content:center;padding-top:6px;font-weight:800;font-size:13.5px;letter-spacing:-0.4px;cursor:pointer" onclick="window.location.href='/temizle'">MO<span style="font-size:9px;font-weight:700;color:#c99a38;margin-left:1px">ai</span></div><span onclick="window.location.href='/temizle'" style="cursor:pointer" title="Soru Sorma Ekranına Dön">Modus Operandi <span style="font-size:12.5px;font-weight:700;color:#996e17;letter-spacing:0.3px">ai</span></span></a><div class="actions">{% if not session.get("uye_eposta") %}<a href="/temizle" class="ghost">+ Yeni Sohbet</a>{% endif %}{% if session.get('uye_eposta') %}<span style="font-size:13px;font-weight:600;color:#2c2219;">👤 {{ session.get('uye_ad') }}</span><form action="/uye_islem" method="POST" style="display:inline"><input type="hidden" name="tur" value="cikis"><button class="ghost" style="border:1px solid #e5e5e0;background:#fff;cursor:pointer">Çıkış</button></form>{% else %}<button type="button" class="ghost" onclick="authModalAc('giris')" style="border:1px solid #e5e5e0;background:#fff;color:#1a1a18;font-weight:600;cursor:pointer">Oturum Aç</button><button type="button" class="ghost" onclick="authModalAc('kayit')" style="background:#2c2219;color:#fff;font-weight:600;cursor:pointer">Ücretsiz Kaydol</button>{% endif %}</div></div>
+<div class="topbar"><a href="/temizle" class="brand" style="text-decoration:none;color:inherit;" title="Ana Sayfaya Dön (Soru Sorma Ekranı)"><div class="logo" style="width:36px;height:32px;border-radius:9px;background:#1a1917;color:#fff;display:flex;align-items:baseline;justify-content:center;padding-top:6px;font-weight:800;font-size:13.5px;letter-spacing:-0.4px;cursor:pointer" onclick="window.location.href='/temizle'">MO</div><span onclick="window.location.href='/temizle'" style="cursor:pointer" title="Soru Sorma Ekranına Dön">Modus Operandi</span></a><div class="actions">{% if not session.get("uye_eposta") %}<a href="/temizle" class="ghost">+ Yeni Sohbet</a>{% endif %}{% if session.get('uye_eposta') %}<span style="font-size:13px;font-weight:600;color:#2c2219;">👤 {{ session.get('uye_ad') }}</span><form action="/uye_islem" method="POST" style="display:inline"><input type="hidden" name="tur" value="cikis"><button class="ghost" style="border:1px solid #e5e5e0;background:#fff;cursor:pointer">Çıkış</button></form>{% else %}<button type="button" class="ghost" onclick="authModalAc('giris')" style="border:1px solid #e5e5e0;background:#fff;color:#1a1a18;font-weight:600;cursor:pointer">Oturum Aç</button><button type="button" class="ghost" onclick="authModalAc('kayit')" style="background:#2c2219;color:#fff;font-weight:600;cursor:pointer">Ücretsiz Kaydol</button>{% endif %}</div></div>
 <div class="app-layout">{% if session.get("uye_eposta") %}<aside class="sidebar"><div style="display:flex;flex-direction:column;flex:1;overflow:hidden;"><a href="/temizle" class="new-chat-btn">+ Yeni Sohbet</a><div style="font-size:11px;font-weight:700;color:#8c6239;margin-bottom:6px;">KONUŞMA GEÇMİŞİ</div><div class="hist-list">{% for g in gecmis_listesi %}<a href="/gecmis_yukle/{{ g.id }}" class="hist-item">💬 {% set _b = g.baslik %}{% if _b.startswith('K|') %}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a6214" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>{{ _b[2:] }}{% elif _b.startswith('M|') %}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2c5282" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>{{ _b[2:] }}{% else %}{{ _b }}{% endif %}</a>{% else %}<div style="font-size:12px;color:#9a9992;">Henüz geçmiş sohbet yok.</div>{% endfor %}</div></div></aside>{% endif %}<div class="main-col">
 {% if not session.get('pro_yetkili') and not session.get('uye_eposta') %}
 <div id="hakBanner" style="max-width:740px;margin:14px auto 0;padding:10px 16px;background:#fbfaf7;border:1px solid #e5e5e0;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;color:#2c2219;">
@@ -55,11 +55,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </div>
 {% endif %}
 <div class="scroll" id="chatBox"><div class="wrap">
-{% if not sohbet %}<div class="empty" id="welcomeBox"><div class="badge" style="width:58px;height:50px;border-radius:14px;background:#1a1917;color:#fff;font-size:21px;font-weight:800;letter-spacing:-0.5px;display:inline-flex;align-items:baseline;justify-content:center;padding-top:11px">MO<span style="font-size:13px;font-weight:700;color:#c99a38;margin-left:1.5px">ai</span></div><h1>Size nasıl yardımcı olabilirim?</h1><p>Yüklü kütüphane kaynakları ve hakemli bilimsel makaleler ışığında fırıncılık, pastacılık ve viennoiserie sorularınızı yanıtlarım.</p><div class="grid"><div class="card" onclick="sor('Otoliz nedir?')"><b>Otoliz nedir?</b></div><div class="card" onclick="sor('Soğuk mayalama nasıl yapılır?')"><b>Soğuk mayalama nasıl yapılır?</b></div><div class="card" onclick="sor('Kruvasan katlama teknikleri nelerdir?')"><b>Kruvasan katlama teknikleri</b></div><div class="card" onclick="sor('Ekşi maya besleme oranları nelerdir?')"><b>Ekşi maya besleme oranları</b></div></div></div>{% endif %}
+{% if not sohbet %}<div class="empty" id="welcomeBox"><div class="badge" style="width:58px;height:50px;border-radius:14px;background:#1a1917;color:#fff;font-size:21px;font-weight:800;letter-spacing:-0.5px;display:inline-flex;align-items:baseline;justify-content:center;padding-top:11px">MO</div><h1>Size nasıl yardımcı olabilirim?</h1><p>Yüklü kütüphane kaynakları ve hakemli bilimsel makaleler ışığında fırıncılık, pastacılık ve viennoiserie sorularınızı yanıtlarım.</p><div class="grid"><div class="card" onclick="sor('Otoliz nedir?')"><b>Otoliz nedir?</b></div><div class="card" onclick="sor('Soğuk mayalama nasıl yapılır?')"><b>Soğuk mayalama nasıl yapılır?</b></div><div class="card" onclick="sor('Kruvasan katlama teknikleri nelerdir?')"><b>Kruvasan katlama teknikleri</b></div><div class="card" onclick="sor('Ekşi maya besleme oranları nelerdir?')"><b>Ekşi maya besleme oranları</b></div></div></div>{% endif %}
 {% for m in sohbet %}{% if m.role == 'user' %}<div class="u-row"><div class="u-bub">{{ m.text.strip() }}</div></div>{% else %}{% set son = loop.last %}{% set prev_q = sohbet[loop.index0 - 1].text if loop.index0 > 0 else 'Genel' %}<div class="a-row" {% if son %}id="latestAiMsg"{% endif %}><div class="av">M</div><div class="a-body"><div class="txt" {% if son %}id="typewriterTarget" data-fulltext="{{ m.text.strip() }}"{% endif %}>{% if not son %}{{ m.text.strip() }}{% endif %}</div><div {% if son %}id="latestSources" style="display:none"{% endif %}><div class="pills">{% if m.kaynaklar %}<button type="button" class="pill" onclick="ac(this,'s-d')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>Kaynakçayı Göster</button>{% endif %}</div>{% if m.kaynaklar %}<div class="drawer s-d">{% for k in m.kaynaklar %}<a href="{{ k.link }}" target="_blank" class="src">{% if k.baslik.startswith('K|') %}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a6214" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>{{ k.baslik[2:] }}{% elif k.baslik.startswith('M|') %}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2c5282" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>{{ k.baslik[2:] }}{% else %}{% set b_txt = k['baslik'] if k is mapping else k.baslik %}{% if b_txt.startswith('K|') %}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a6214" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>{{ b_txt[2:] }}{% elif b_txt.startswith('M|') %}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2c5282" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>{{ b_txt[2:] }}{% else %}{{ b_txt }}{% endif %}{% endif %}</a>{% endfor %}</div>{% endif %}</div></div></div>{% endif %}{% endfor %}
 <div class="think" id="thinkingBox"><div class="av">M</div><span id="thinkingText">Kaynaklar taranıyor...</span></div>
 </div></div>
-<div class="comp"><form action="/" method="POST" class="box" id="chatForm"><input type="text" name="soru" id="soruInput" class="inp" placeholder="Modus Operandi ai'ya bir soru sorun..." autocomplete="off" required autofocus><button type="submit" class="snd" id="sendBtn">↑</button></form><div class="note">Modus Operandi <span style="font-size:12.5px;font-weight:700;color:#996e17;letter-spacing:0.3px">ai</span> yalnızca doğrulanmış kütüphane ve hakemli akademik kaynakları kullanır.</div></div>
+<div class="comp"><form action="/" method="POST" class="box" id="chatForm"><input type="text" name="soru" id="soruInput" class="inp" placeholder="Modus Operandi'ya bir soru sorun..." autocomplete="off" required autofocus><button type="submit" class="snd" id="sendBtn">↑</button></form><div class="note">Modus Operandi yalnızca doğrulanmış kütüphane ve hakemli akademik kaynakları kullanır.</div></div>
 </div></div>
 <script>
 var cb=document.getElementById("chatBox"),lm=document.getElementById("latestAiMsg"),tg=document.getElementById("typewriterTarget"),ls=document.getElementById("latestSources");
@@ -124,7 +124,7 @@ document.getElementById("chatForm").onsubmit = function(e) {
     <button type="button" onclick="document.getElementById('uyeModal').style.display='none'" style="position:absolute;top:16px;right:18px;border:none;background:transparent;font-size:22px;color:#6e685f;cursor:pointer;line-height:1">×</button>
 
     <div style="text-align:center;margin-bottom:22px">
-      <div style="font-size:13px;font-weight:700;letter-spacing:.6px;color:#996e17;margin-bottom:6px">MODUS OPERANDI AI</div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:.6px;color:#996e17;margin-bottom:6px">MODUS OPERANDI</div>
       <h2 id="modalBaslik" style="margin:0;font-size:24px;font-weight:700;color:#1a1815">Tekrar hoş geldiniz</h2>
     </div>
 
@@ -213,5 +213,105 @@ function uyeModalAc(sekme){
   setTimeout(ikonla, 150);
 })();
 </script>
+
+<div id="sohbetGecmisiKutu" style="display:none;position:fixed;top:64px;left:14px;width:240px;max-height:calc(100vh - 90px);overflow-y:auto;background:#fcfaf7;border:1px solid #e6e0d6;border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);z-index:900;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="font-size:11.5px;font-weight:700;letter-spacing:.5px;color:#8c8273;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+    <span>SOHBET GEÇMİŞİM</span>
+    <button type="button" onclick="yeniSohbetBaslat()" style="border:none;background:#996e17;color:#fff;font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer">+ Yeni</button>
+  </div>
+  <div id="sohbetGecmisiListe" style="display:flex;flex-direction:column;gap:4px;font-size:13px"></div>
+</div>
+
+<script>
+window._aktifSohbetId = null;
+
+function yeniSohbetBaslat(){
+  window._aktifSohbetId = null;
+  location.href = "/";
+}
+
+async function sohbetListesiniYukle(){
+  try{
+    const r = await fetch("/api/sohbetler");
+    const d = await r.json();
+    const kutu = document.getElementById("sohbetGecmisiKutu");
+    const liste = document.getElementById("sohbetGecmisiListe");
+    if(!d.giris){ kutu.style.display = "none"; return; }
+    kutu.style.display = "block";
+    if(!d.sohbetler || d.sohbetler.length === 0){
+      liste.innerHTML = '<div style="color:#9a9184;font-size:12px;padding:6px 4px">Henüz kayıtlı sohbet yok.</div>';
+      return;
+    }
+    liste.innerHTML = d.sohbetler.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 9px;border-radius:8px;background:${window._aktifSohbetId===s.id?'#efe9de':'transparent'};cursor:pointer" onmouseover="this.style.background='#f3eee5'" onmouseout="this.style.background='${window._aktifSohbetId===s.id?'#efe9de':'transparent'}'">
+        <span onclick="sohbetAc('${s.id}')" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#2b2722;font-weight:500">${s.baslik}</span>
+        <span onclick="sohbetSil(event,'${s.id}')" title="Sil" style="color:#a89f91;padding-left:6px;font-size:14px">×</span>
+      </div>
+    `).join("");
+  }catch(e){}
+}
+
+async function sohbetAc(sid){
+  try{
+    const r = await fetch("/api/sohbet/" + sid);
+    const d = await r.json();
+    if(!d.ok) return;
+    window._aktifSohbetId = sid;
+    const alan = document.getElementById("sohbetAlani") || document.getElementById("chatBox") || document.querySelector(".messages") || document.body;
+    let html = '<div style="max-width:760px;margin:24px auto;padding:16px">';
+    (d.sohbet.mesajlar || []).forEach(m => {
+      html += `<div style="background:#f3efe8;padding:12px 16px;border-radius:14px;margin:12px 0;font-weight:600;color:#1a1815">${m.soru}</div>`;
+      html += `<div style="background:#fff;border:1px solid #e6e0d6;padding:16px;border-radius:14px;margin:8px 0 20px;line-height:1.65;color:#23201c;white-space:pre-wrap">${m.cevap}</div>`;
+    });
+    html += '</div>';
+    if(document.getElementById("sohbetAlani") || document.getElementById("chatBox")){
+      alan.innerHTML = html;
+    } else {
+      const ana = document.querySelector("main") || document.body;
+      let kayitKap = document.getElementById("gecmisGorunumKap");
+      if(!kayitKap){ kayitKap = document.createElement("div"); kayitKap.id = "gecmisGorunumKap"; ana.prepend(kayitKap); }
+      kayitKap.innerHTML = html;
+    }
+    sohbetListesiniYukle();
+  }catch(e){}
+}
+
+async function sohbetSil(ev, sid){
+  ev.stopPropagation();
+  await fetch("/api/sohbet/" + sid, {method:"DELETE"});
+  if(window._aktifSohbetId === sid) window._aktifSohbetId = null;
+  sohbetListesiniYukle();
+}
+
+// Fetch yanitlarini otomatik yakalayip giris yapmis kullaniciya kaydet
+(function(){
+  const origFetch = window.fetch;
+  window.fetch = async function(url, opts){
+    const res = await origFetch.apply(this, arguments);
+    try{
+      if(typeof url === "string" && (url.includes("/sor") || url.includes("/chat") || url.includes("/ask")) && opts && opts.method === "POST"){
+        const klon = res.clone();
+        const reqBody = opts.body ? JSON.parse(opts.body) : {};
+        const soruMetni = reqBody.soru || reqBody.mesaj || reqBody.prompt || reqBody.question || "";
+        const yanit = await klon.json();
+        const cevapMetni = yanit.cevap || yanit.yanit || yanit.answer || yanit.response || "";
+        if(soruMetni && cevapMetni){
+          const kRes = await origFetch("/api/sohbet_kaydet", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({id: window._aktifSohbetId, soru: soruMetni, cevap: cevapMetni})
+          });
+          const kd = await kRes.json();
+          if(kd.ok && kd.id){ window._aktifSohbetId = kd.id; sohbetListesiniYukle(); }
+        }
+      }
+    }catch(e){}
+    return res;
+  };
+})();
+
+document.addEventListener("DOMContentLoaded", sohbetListesiniYukle);
+</script>
+
 </body>
 </html>
