@@ -89,7 +89,7 @@ def openalex_ve_crossref_ara(kelimeler):
     s = chr(47)
     try:
         oa_url = f"https:{s}{s}api.openalex.org{s}works?search={requests.utils.quote(sorgu_en)}&filter=has_doi:true,publication_year:2018-2026&sort=cited_by_count:desc&per-page=5"
-        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@eksimaya.ai"}, timeout=5)
+        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@eksimaya.ai"}, timeout=35)
         if res.status_code == 200:
             for item in res.json().get("results", []):
                 baslik = item.get("title") or "Akademik Yayın"
@@ -115,7 +115,7 @@ def gemini_bulut_sor(gecmis, sistem, son_icerik):
     mesajlar.append({"role": "user", "parts": [{"text": son_icerik}]})
     for m in GEMINI_MODELLER:
         try:
-            res = requests.post(base_url + m + ":generateContent", headers=headers, json={"contents": mesajlar, "systemInstruction": {"parts": [{"text": sistem}]}, "generationConfig": {"temperature": 0.2}}, timeout=5)
+            res = requests.post(base_url + m + ":generateContent", headers=headers, json={"contents": mesajlar, "systemInstruction": {"parts": [{"text": sistem}]}, "generationConfig": {"temperature": 0.2}}, timeout=35)
             if res.status_code == 200:
                 return next(iter(next(iter(res.json().get("candidates", []))).get("content", {}).get("parts", []))).get("text")
         except Exception: continue
@@ -129,7 +129,7 @@ def openrouter_bulut_sor(gecmis, sistem, son_icerik):
     mesajlar = [{"role": "system", "content": sistem}] + [{"role": "assistant" if m["role"] == "model" else "user", "content": m["text"]} for m in gecmis[-6:]] + [{"role": "user", "content": son_icerik}]
     for m_or in ["google/gemini-2.5-flash", "openai/gpt-4o-mini", "openrouter/auto"]:
         try:
-            res = requests.post(url, headers=headers, json={"model": m_or, "messages": mesajlar, "temperature": 0.2}, timeout=5)
+            res = requests.post(url, headers=headers, json={"model": m_or, "messages": mesajlar, "temperature": 0.2}, timeout=35)
             if res.status_code == 200:
                 return next(iter(res.json().get("choices", []))).get("message", {}).get("content")
         except Exception:
