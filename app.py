@@ -418,6 +418,64 @@ def apple_callback():
         session["uye_mesaj"] = "Apple girişi tamamlanamadı."
     return redirect("/")
 
+@app.route("/google_giris")
+def google_giris():
+    import urllib.parse
+    cid = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+    if not cid:
+        session["uye_mesaj"] = "Google giriş anahtarı henüz tanımlanmadı."
+        return redirect("/")
+    kok = request.url_root.rstrip("/")
+    if "127.0.0.1" not in kok and "localhost" not in kok and kok.startswith("http://"):
+        kok = "https://" + kok[7:]
+    redirect_uri = kok + "/google_callback"
+    params = urllib.parse.urlencode({
+        "client_id": cid,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "prompt": "select_account"
+    })
+    return redirect("https://google.com?" + params)
+
+@app.route("/google_callback")
+def google_callback():
+    import urllib.request, urllib.parse
+    code = request.args.get("code", "")
+    cid = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+    csec = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+    if not code or not cid or not csec:
+        session["uye_mesaj"] = "Google girişi tamamlanamadı."
+        return redirect("/")
+    try:
+        kok = request.url_root.rstrip("/")
+        if "127.0.0.1" not in kok and "localhost" not in kok and kok.startswith("http://"):
+            kok = "https://" + kok[7:]
+        redirect_uri = kok + "/google_callback"
+        data = urllib.parse.urlencode({
+            "code": code, "client_id": cid, "client_secret": csec,
+            "redirect_uri": redirect_uri, "grant_type": "authorization_code"
+        }).encode("utf-8")
+        req = urllib.request.Request("https://googleapis.com", data=data)
+        token_res = json.loads(urllib.request.urlopen(req, timeout=10).read().decode("utf-8"))
+        id_token = token_res.get("id_token", "")
+        info_url = "https://googleapis.cominfo?id_token=" + urllib.parse.quote(id_token)
+        uinfo = json.loads(urllib.request.urlopen(info_url, timeout=10).read().decode("utf-8"))
+        ep = str(uinfo.get("email", "")).strip().lower()
+        kisa = ep.split("@") if "@" in ep else ep
+        ad = str(uinfo.get("name", kisa)).strip() or kisa
+        if ep:
+            u = _uyeler()
+            if ep not in u:
+                u[ep] = {"ad": ad, "kullanici_adi": kisa, "eposta": ep, "sifre": secrets.token_hex(12)}
+                json.dump(u, open(UYELER_D, "w", encoding="utf-8"), ensure_ascii=False)
+            session["uye_eposta"] = ep
+            session["uye_ad"] = str(u[ep].get("ad", ad))
+            session.pop("uye_mesaj", None)
+    except Exception as err:
+        session["uye_mesaj"] = f"Google girişi başarısız: {str(err)[:80]}"
+    return redirect("/")
+
 @app.route("/uye_islem", methods=["POST"])
 def uye_islem():
     tur = request.form.get("tur", "giris")
@@ -541,6 +599,11 @@ def temizle_kesin():
         json.dump(g, open(GECMIS_D, "w", encoding="utf-8"), ensure_ascii=False)
     SOHBET_DEPO.clear()
     return redirect("/")
+
+
+@app.route("/gizlilik")
+def gizlilik():
+    return "<h2>Modus Operandi ai — Gizlilik Politikası</h2><p>Kullanıcı bilgileri yalnızca oturum açma ve sohbet geçmişini saklama amacıyla kullanılır; üçüncü taraflarla paylaşılmaz.</p>"
 
 if __name__ == '__main__':
     kitaplari_indeksle()

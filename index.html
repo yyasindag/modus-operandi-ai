@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Modus Operandi AI</title>
+<title>Modus Operandi <span style="font-size:12.5px;font-weight:700;color:#996e17;letter-spacing:0.3px">ai</span></title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#fff;color:#1a1a18;height:100vh;display:flex;flex-direction:column}
@@ -43,16 +43,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .inp{flex:1;border:none;background:transparent;font-size:15px;outline:none;padding:8px 0}
 .snd{width:34px;height:34px;border-radius:50%;border:none;background:#2c2219;color:#fff;font-size:16px;cursor:pointer}
 .note{text-align:center;font-size:11px;color:#9a9992;margin-top:8px}
-</style>
+.app-layout{display:flex;flex:1;overflow:hidden}.sidebar{width:260px;background:#fbfaf7;border-right:1px solid #e5e5e0;display:flex;flex-direction:column;justify-content:space-between;padding:14px;flex-shrink:0}.new-chat-btn{display:block;text-align:center;padding:10px;background:#2c2219;color:#fff;text-decoration:none;border-radius:10px;font-size:13.5px;font-weight:600;margin-bottom:14px}.hist-list{flex:1;overflow-y:auto}.hist-item{display:block;padding:8px 10px;border-radius:8px;text-decoration:none;color:#2c2219;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hist-item:hover{background:#fff}.auth-box{border-top:1px solid #e5e5e0;padding-top:10px}.auth-inp{width:100%;padding:7px 9px;border:1px solid #dcdbd5;border-radius:8px;font-size:12.5px;margin-bottom:6px}.auth-btn{width:100%;padding:7px;background:#fff;border:1px solid #2c2219;color:#2c2219;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer}.main-col{flex:1;display:flex;flex-direction:column;overflow:hidden}@media(max-width:768px){.sidebar{display:none}}</style>
 </head>
 <body>
-<div class="topbar"><div class="brand"><div class="logo">M</div><span>Modus Operandi AI</span></div><div class="actions"><a href="/temizle" class="ghost">+ Yeni Sohbet</a><a href="/pro" class="pro">★ PRO</a></div></div>
+<div class="topbar"><a href="/temizle" class="brand" style="text-decoration:none;color:inherit;" title="Ana Sayfaya Dön (Soru Sorma Ekranı)"><div class="logo" style="width:36px;height:32px;border-radius:9px;background:#1a1917;color:#fff;display:flex;align-items:baseline;justify-content:center;padding-top:6px;font-weight:800;font-size:13.5px;letter-spacing:-0.4px;cursor:pointer" onclick="window.location.href='/temizle'">MO<span style="font-size:9px;font-weight:700;color:#c99a38;margin-left:1px">ai</span></div><span onclick="window.location.href='/temizle'" style="cursor:pointer" title="Soru Sorma Ekranına Dön">Modus Operandi <span style="font-size:12.5px;font-weight:700;color:#996e17;letter-spacing:0.3px">ai</span></span></a><div class="actions">{% if not session.get("uye_eposta") %}<a href="/temizle" class="ghost">+ Yeni Sohbet</a>{% endif %}{% if session.get('uye_eposta') %}<span style="font-size:13px;font-weight:600;color:#2c2219;">👤 {{ session.get('uye_ad') }}</span><form action="/uye_islem" method="POST" style="display:inline"><input type="hidden" name="tur" value="cikis"><button class="ghost" style="border:1px solid #e5e5e0;background:#fff;cursor:pointer">Çıkış</button></form>{% else %}<button type="button" class="ghost" onclick="authModalAc('giris')" style="border:1px solid #e5e5e0;background:#fff;color:#1a1a18;font-weight:600;cursor:pointer">Oturum Aç</button><button type="button" class="ghost" onclick="authModalAc('kayit')" style="background:#2c2219;color:#fff;font-weight:600;cursor:pointer">Ücretsiz Kaydol</button>{% endif %}</div></div>
+<div class="app-layout">{% if session.get("uye_eposta") %}<aside class="sidebar"><div style="display:flex;flex-direction:column;flex:1;overflow:hidden;"><a href="/temizle" class="new-chat-btn">+ Yeni Sohbet</a><div style="font-size:11px;font-weight:700;color:#8c6239;margin-bottom:6px;">KONUŞMA GEÇMİŞİ</div><div class="hist-list">{% for g in gecmis_listesi %}<a href="/gecmis_yukle/{{ g.id }}" class="hist-item">💬 {{ g.baslik }}</a>{% else %}<div style="font-size:12px;color:#9a9992;">Henüz geçmiş sohbet yok.</div>{% endfor %}</div></div></aside>{% endif %}<div class="main-col">
+{% if not session.get('pro_yetkili') and not session.get('uye_eposta') %}
+<div id="hakBanner" style="max-width:740px;margin:14px auto 0;padding:10px 16px;background:#fbfaf7;border:1px solid #e5e5e0;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;color:#2c2219;">
+  <span>Hoş geldiniz! Misafir kullanıcı olarak 24 saat içinde <b><span id="ustKalanSayi">{{ 5 - session.get('kota_sayi', 0) if (5 - session.get('kota_sayi', 0)) > 0 else 0 }}</span> / 5 ücretsiz soru hakkınız</b> bulunmaktadır.</span>
+  <a href="/paketler" style="color:#996e17;font-weight:700;text-decoration:none;white-space:nowrap;">Ek Hak Al →</a>
+</div>
+{% endif %}
 <div class="scroll" id="chatBox"><div class="wrap">
-{% if not sohbet %}<div class="empty" id="welcomeBox"><div class="badge">M</div><h1>Size nasıl yardımcı olabilirim?</h1><p>Yüklü kütüphane kaynakları ve hakemli bilimsel makaleler ışığında fırıncılık, pastacılık ve viennoiserie sorularınızı yanıtlarım.</p><div class="grid"><div class="card" onclick="sor('Otoliz nedir?')"><b>Otoliz nedir?</b></div><div class="card" onclick="sor('Soğuk mayalama nasıl yapılır?')"><b>Soğuk mayalama nasıl yapılır?</b></div><div class="card" onclick="sor('Kruvasan katlama teknikleri nelerdir?')"><b>Kruvasan katlama teknikleri</b></div><div class="card" onclick="sor('Ekşi maya besleme oranları nelerdir?')"><b>Ekşi maya besleme oranları</b></div></div></div>{% endif %}
+{% if not sohbet %}<div class="empty" id="welcomeBox"><div class="badge" style="width:58px;height:50px;border-radius:14px;background:#1a1917;color:#fff;font-size:21px;font-weight:800;letter-spacing:-0.5px;display:inline-flex;align-items:baseline;justify-content:center;padding-top:11px">MO<span style="font-size:13px;font-weight:700;color:#c99a38;margin-left:1.5px">ai</span></div><h1>Size nasıl yardımcı olabilirim?</h1><p>Yüklü kütüphane kaynakları ve hakemli bilimsel makaleler ışığında fırıncılık, pastacılık ve viennoiserie sorularınızı yanıtlarım.</p><div class="grid"><div class="card" onclick="sor('Otoliz nedir?')"><b>Otoliz nedir?</b></div><div class="card" onclick="sor('Soğuk mayalama nasıl yapılır?')"><b>Soğuk mayalama nasıl yapılır?</b></div><div class="card" onclick="sor('Kruvasan katlama teknikleri nelerdir?')"><b>Kruvasan katlama teknikleri</b></div><div class="card" onclick="sor('Ekşi maya besleme oranları nelerdir?')"><b>Ekşi maya besleme oranları</b></div></div></div>{% endif %}
 {% for m in sohbet %}{% if m.role == 'user' %}<div class="u-row"><div class="u-bub">{{ m.text.strip() }}</div></div>{% else %}{% set son = loop.last %}{% set prev_q = sohbet[loop.index0 - 1].text if loop.index0 > 0 else 'Genel' %}<div class="a-row" {% if son %}id="latestAiMsg"{% endif %}><div class="av">M</div><div class="a-body"><div class="txt" {% if son %}id="typewriterTarget" data-fulltext="{{ m.text.strip() }}"{% endif %}>{% if not son %}{{ m.text.strip() }}{% endif %}</div><div {% if son %}id="latestSources" style="display:none"{% endif %}><div class="pills">{% if m.kaynaklar %}<button type="button" class="pill" onclick="ac(this,'s-d')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>Kaynakçayı Göster</button>{% endif %}</div>{% if m.kaynaklar %}<div class="drawer s-d">{% for k in m.kaynaklar %}<a href="{{ k.link }}" target="_blank" class="src">{{ k.baslik }}</a>{% endfor %}</div>{% endif %}</div></div></div>{% endif %}{% endfor %}
 <div class="think" id="thinkingBox"><div class="av">M</div><span id="thinkingText">Kaynaklar taranıyor...</span></div>
 </div></div>
-<div class="comp"><form action="/" method="POST" class="box" id="chatForm"><input type="text" name="soru" id="soruInput" class="inp" placeholder="Modus Operandi AI'ya bir soru sorun..." autocomplete="off" required autofocus><button type="submit" class="snd" id="sendBtn">↑</button></form><div class="note">Modus Operandi AI yalnızca doğrulanmış kütüphane ve hakemli akademik kaynakları kullanır.</div></div>
+<div class="comp"><form action="/" method="POST" class="box" id="chatForm"><input type="text" name="soru" id="soruInput" class="inp" placeholder="Modus Operandi ai'ya bir soru sorun..." autocomplete="off" required autofocus><button type="submit" class="snd" id="sendBtn">↑</button></form><div class="note">Modus Operandi <span style="font-size:12.5px;font-weight:700;color:#996e17;letter-spacing:0.3px">ai</span> yalnızca doğrulanmış kütüphane ve hakemli akademik kaynakları kullanır.</div></div>
+</div></div>
 <script>
 var cb=document.getElementById("chatBox"),lm=document.getElementById("latestAiMsg"),tg=document.getElementById("typewriterTarget"),ls=document.getElementById("latestSources");
 function sor(m){document.getElementById("soruInput").value=m;document.getElementById("chatForm").requestSubmit();}
@@ -88,5 +96,60 @@ document.getElementById("chatForm").onsubmit = function(e) {
 };
 
 </script>
-</body>
+<script>
+(function(){
+  const origFetch = window.fetch;
+  window.fetch = async function(...args){
+    const res = await origFetch.apply(this, args);
+    if(args[0] && String(args[0]).includes('/sor')){
+      if(res.status === 429){
+        alert("Günlük 5 ücretsiz soru hakkınız doldu. Ek soru paketi sayfasına yönlendiriliyorsunuz.");
+        window.location.href = "/paketler";
+        return res;
+      }
+      ["kalanSayiSpan", "ustKalanSayi"].forEach(function(id){
+        const el = document.getElementById(id);
+        if(el){
+          let v = parseInt(el.textContent || "5");
+          if(v > 0) el.textContent = String(v - 1);
+        }
+      });
+    }
+    return res;
+  };
+})();
+</script>
+<div id="uyeModal" style="display:{{ 'flex' if (session.get('uye_mesaj') or session.get('uye_bilgi') or session.get('reset_adim')) else 'none' }};position:fixed;inset:0;background:rgba(26,26,24,.45);z-index:9999;align-items:center;justify-content:center;padding:16px"><div style="background:#fff;border:1px solid #e5e5e0;border-radius:18px;max-width:380px;width:100%;padding:24px;position:relative"><button type="button" onclick="document.getElementById('uyeModal').style.display='none'" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;color:#6e6d68;cursor:pointer">&times;</button><div style="display:flex;gap:6px;background:#f4f3ef;padding:4px;border-radius:10px;margin:10px 0 14px"><button type="button" id="tG" onclick="authModalAc('giris')" style="flex:1;border:none;background:#fff;padding:7px;border-radius:8px;font-weight:700;cursor:pointer">Oturum Aç</button><button type="button" id="tK" onclick="authModalAc('kayit')" style="flex:1;border:none;background:transparent;padding:7px;border-radius:8px;font-weight:600;color:#6e6d68;cursor:pointer">Ücretsiz Kaydol</button></div><div style="margin-bottom:12px;">
+  <a href="/google_giris" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px;background:#fff;border:1px solid #dcdbd5;border-radius:10px;color:#1a1a18;font-size:13.5px;font-weight:600;text-decoration:none;margin-bottom:8px;">
+    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Google ile Devam Et
+  </a>
+  <div style="display:flex;align-items:center;gap:8px;color:#9a9992;font-size:11.5px;"><div style="flex:1;height:1px;background:#e5e5e0"></div>veya e-posta ile<div style="flex:1;height:1px;background:#e5e5e0"></div></div>
+</div>
+<form id="fG" action="/uye_islem" method="POST"><input type="hidden" name="tur" value="giris"><input type="text" name="eposta" required placeholder="Kullanıcı adı veya e-posta" style="width:100%;padding:10px;border:1px solid #dcdbd5;border-radius:10px;margin-bottom:10px"><input type="password" name="sifre" required placeholder="Şifre" style="width:100%;padding:10px;border:1px solid #dcdbd5;border-radius:10px;margin-bottom:14px"><button style="width:100%;background:#2c2219;color:#fff;border:none;padding:11px;border-radius:10px;font-weight:600;cursor:pointer">Oturum Aç</button>
+<div style="text-align:center;margin-top:10px;"><a href="#" onclick="event.preventDefault();document.getElementById('fG').style.display='none';document.getElementById('fK').style.display='none';document.getElementById('fUnuttum').style.display='block';" style="font-size:12px;color:#996e17;font-weight:600;text-decoration:none;">Kullanıcı adımı veya şifremi unuttum</a></div>
+</form>
+<form id="fUnuttum" action="/sifre_sifirla" method="POST" style="display:{{ 'block' if session.get('reset_adim') else 'none' }};">
+  {% if session.get('uye_bilgi') %}<div style="background:#f3f9f3;border:1px solid #b7dfb7;color:#1e5c1e;padding:8px;border-radius:8px;font-size:12px;margin-bottom:8px;">{{ session.get('uye_bilgi') }}</div>{% endif %}
+  {% if session.get('reset_adim') == 'kod_dogrula' %}
+    <input type="hidden" name="adim" value="yeni_sifre">
+    <div style="font-size:12px;color:#2c2219;margin-bottom:8px;">Kayıtlı E-posta / Kullanıcı Adınız: <b>{{ session.get('reset_eposta') }}</b></div>
+    <input type="text" name="kod" required placeholder="6 Haneli Doğrulama Kodu" style="width:100%;padding:10px;border:1px solid #dcdbd5;border-radius:10px;margin-bottom:8px">
+    <input type="password" name="yeni_sifre" required placeholder="Yeni Şifrenizi Belirleyin" style="width:100%;padding:10px;border:1px solid #dcdbd5;border-radius:10px;margin-bottom:12px">
+    <button style="width:100%;background:#2c2219;color:#fff;border:none;padding:11px;border-radius:10px;font-weight:600;cursor:pointer">Şifreyi Güncelle ve Giriş Yap</button>
+  {% else %}
+    <input type="hidden" name="adim" value="kod_gonder">
+    <div style="font-size:12px;color:#6e6d68;margin-bottom:8px;">Kayıtlı e-posta adresinizi girin; kullanıcı adı bilginiz ve şifre sıfırlama kodunuz gönderilsin.</div>
+    <input type="email" name="eposta" required placeholder="Kayıtlı e-posta adresiniz" style="width:100%;padding:10px;border:1px solid #dcdbd5;border-radius:10px;margin-bottom:12px">
+    <button style="width:100%;background:#2c2219;color:#fff;border:none;padding:11px;border-radius:10px;font-weight:600;cursor:pointer">Sıfırlama E-postası Gönder</button>
+  {% endif %}
+  <div style="text-align:center;margin-top:8px;"><a href="#" onclick="event.preventDefault();document.getElementById('fUnuttum').style.display='none';document.getElementById('fG').style.display='block';" style="font-size:12px;color:#6e6d68;text-decoration:none;">← Giriş ekranına dön</a></div>
+</form><form id="fK" action="/uye_islem" method="POST" style="display:none">
+  <input type="hidden" name="tur" value="kayit">
+  <input type="text" name="ad" required placeholder="Adınız Soyadınız" style="width:100%;padding:10px;border:1px solid #dcdbd5;border-radius:10px;margin-bottom:8px">
+  <input type="email" name="eposta" required placeholder="E-posta Adresiniz" style="width:100%;padding:10px;border:1px solid #dcdbd5;border-radius:10px;margin-bottom:8px">
+  <input type="text" name="kullanici_adi" required placeholder="Kullanıcı Adı" style="width:100%;padding:10px;border:1px solid #dcdbd5;border-radius:10px;margin-bottom:8px">
+  <input type="password" name="sifre" required placeholder="Şifre" style="width:100%;padding:10px;border:1px solid #dcdbd5;border-radius:10px;margin-bottom:12px">
+  <button style="width:100%;background:#2c2219;color:#fff;border:none;padding:11px;border-radius:10px;font-weight:600;cursor:pointer">Ücretsiz Hesap Oluştur</button>
+</form></div></div><script>function authModalAc(m){document.getElementById('uyeModal').style.display='flex';var k=(m==='kayit');document.getElementById('fG').style.display=k?'none':'block';document.getElementById('fK').style.display=k?'block':'none';document.getElementById('tK').style.background=k?'#fff':'transparent';document.getElementById('tG').style.background=k?'transparent':'#fff';}</script></body>
 </html>
