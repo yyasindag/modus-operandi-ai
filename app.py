@@ -19,6 +19,21 @@ GEMINI_MODELLER = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
 ONCELIKLI_SAYFALAR = []
 DIGER_SAYFALAR = []
 
+import gzip as _gzip
+_indeks_gz = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kutuphane_indeks.json.gz")
+if os.path.exists(_indeks_gz):
+    try:
+        with _gzip.open(_indeks_gz, "rt", encoding="utf-8") as _f:
+            _veri = json.load(_f)
+        if isinstance(_veri, dict):
+            ONCELIKLI_SAYFALAR = _veri.get("oncelikli", []) or _veri.get("ONCELIKLI_SAYFALAR", [])
+            DIGER_SAYFALAR = _veri.get("diger", []) or _veri.get("DIGER_SAYFALAR", [])
+        elif isinstance(_veri, list):
+            DIGER_SAYFALAR = _veri
+    except Exception as _e:
+        print("Indeks yukleme hatasi:", _e)
+
+
 FIRINCILIK_SOZLUGU = {
     "pastaci kremasi": "pastry cream creme patissiere custard starch egg yolk",
     "krema": "pastry cream custard ganache buttercream emulsion",
