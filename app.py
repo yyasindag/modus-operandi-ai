@@ -651,18 +651,10 @@ def uyeler_yonetim():
 SOHBETLER_D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sohbetler.json")
 
 def _sohbetleri_oku():
-    if os.path.exists(SOHBETLER_D):
-        try:
-            return json.load(open(SOHBETLER_D, "r", encoding="utf-8"))
-        except Exception:
-            return {}
-    return {}
+    return _kv_yukle("sohbetler", SOHBETLER_D)
 
 def _sohbetleri_yaz(veri):
-    try:
-        json.dump(veri, open(SOHBETLER_D, "w", encoding="utf-8"), ensure_ascii=False)
-    except Exception:
-        pass
+    _kv_kaydet("sohbetler", veri, SOHBETLER_D)
 
 @app.route("/api/sohbetler", methods=["GET"])
 def api_sohbetler():
