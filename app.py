@@ -20,6 +20,25 @@ ONCELIKLI_SAYFALAR = []
 DIGER_SAYFALAR = []
 
 FIRINCILIK_SOZLUGU = {
+    "pastaci kremasi": "pastry cream creme patissiere custard starch egg yolk",
+    "krema": "pastry cream custard ganache buttercream emulsion",
+    "kesilir": "curdling coagulation syneresis emulsion separation",
+    "ganaj": "ganache chocolate emulsion cocoa butter",
+    "temperleme": "chocolate tempering polymorphism cocoa butter beta crystal",
+    "mereng": "meringue egg white foam aeration sugar",
+    "pandispanya": "sponge cake genoise biscuit aeration baking",
+    "kruvasan": "croissant laminated dough butter viennoiserie fermentation",
+    "katlama": "lamination folding layers butter plasticity",
+    "otoliz": "autolyse flour water hydration gluten enzymatic",
+    "eksi maya": "sourdough starter wild yeast lactic acid bacteria fermentation",
+    "mayalama": "fermentation proofing yeast dough rheology",
+    "soguk": "cold retardation fermentation temperature",
+    "gluten": "gluten gliadin glutenin dough network elasticity",
+    "hidrasyon": "hydration water absorption flour dough",
+    "tuz": "salt sodium chloride gluten strengthening fermentation",
+    "ekmek": "bread wheat flour baking crumb crust",
+    "hamur": "dough wheat flour rheology fermentation",
+
     "nem": "humidity moisture steam", "buhar": "steam humidity crust",
     "ferment": "fermentation bulk proof", "mayalan": "fermentation yeast proofing",
     "maya": "sourdough starter levain", "ekşi": "sourdough lactic acetic",
@@ -90,7 +109,7 @@ def openalex_ve_crossref_ara(kelimeler):
     s = chr(47)
     try:
         oa_url = f"https:{s}{s}api.openalex.org{s}works?search={requests.utils.quote(sorgu_en)}&filter=has_doi:true,publication_year:2018-2026&sort=cited_by_count:desc&per-page=5"
-        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@eksimaya.ai"}, timeout=35)
+        res = requests.get(oa_url, headers={"User-Agent": "mailto:info@modusoperandiai.com"}, timeout=35)
         if res.status_code == 200:
             for item in res.json().get("results", []):
                 baslik = item.get("title") or "Akademik Yayın"
@@ -167,10 +186,12 @@ def yanit_olustur(soru, gecmis):
         if _b:
             temiz_k.append({"baslik": _b, "link": _l})
     if not temiz_k:
-        temiz_k = [
-            {"baslik": "Modus Operandi Fırıncılık, Pastacılık ve Fermantasyon Kütüphanesi", "link": "#"},
-            {"baslik": "OpenAlex Hakemli Gıda Bilimi Veritabanı (2018–2026)", "link": "https://openalex.org"}
-        ]
+        _, _yedek_akad = openalex_ve_crossref_ara(["bakery", "pastry", "fermentation"])
+        for _it in _yedek_akad:
+            _b = _it.get("baslik", "")
+            _b = _b[2:] if (_b.startswith("K|") or _b.startswith("M|")) else _b
+            if _b:
+                temiz_k.append({"baslik": _b, "link": _it.get("link", "#")})
     kaynaklar = temiz_k
     return (cevap, kaynaklar) if cevap else ("⚠️ Bulut sunucularında anlık yoğunluk var, lütfen birkaç saniye sonra tekrar deneyin.", [])
 
