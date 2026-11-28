@@ -104,7 +104,7 @@ def yerel_kitap_ara(havuz, kelimeler, limit=2):
     skorlu = []
     for s in havuz:
         k_adi_kucuk = s["kitap"].lower()
-        dosya_bonusu = sum(500 for k in kelimeler if k in k_adi_kucuk)
+        dosya_bonusu = sum(3 for k in kelimeler if k in k_adi_kucuk)
         puan = dosya_bonusu + sum(s["metin"].lower().count(k) for k in kelimeler)
         if puan > 0:
             skorlu.append((puan, s))
@@ -224,8 +224,11 @@ def index():
     SOHBET_DEPO.setdefault(sid, [])
     pdf_sayisi = len(glob.glob(os.path.expanduser("~/kitaplar/oncelikli/*.pdf"))) + len(glob.glob(os.path.expanduser("~/kitaplar/*.pdf")))
     if request.method == 'GET':
-        SOHBET_DEPO[sid] = []
-        return render_template('index.html', sohbet=[], pdf_sayisi=pdf_sayisi)
+        _sh = session.get('uye_eposta')
+        _gc = _gecmis().get(_sh, []) if _sh else []
+        if not session.pop('gecmis_yuklendi', False):
+            SOHBET_DEPO[sid] = []
+        return render_template('index.html', sohbet=SOHBET_DEPO.get(sid, []), pdf_sayisi=pdf_sayisi, gecmis_listesi=_gc)
     if "sohbet" not in session: SOHBET_DEPO[sid] = []
     soru = request.form.get('soru', '').strip()
     if soru:
@@ -245,7 +248,7 @@ ISLER = {}
 @app.route("/sor", methods=["GET", "POST"])
 def api_sor():
     import time
-    if not session.get("pro_yetkili") and not session.get("uye_eposta"):
+    if not session.get("sinirsiz") and not session.get("pro_yetkili"):
         simdi = time.time()
         if simdi - session.get("kota_baslangic", 0) >= 86400:
             session["kota_baslangic"] = simdi
@@ -259,12 +262,23 @@ def api_sor():
             session["kota_sayi"] = session.get("kota_sayi", 0) + 1
     soru = (request.args.get("q") or "").strip()
     if not soru: return {"ok": False}
+    _aktif_ep = session.get("uye_eposta", "")
     jid = str(random.randint(100000, 999999))
     ISLER[jid] = {"durum": "bekliyor"}
     def arka_plan():
         try:
             c, k = yanit_olustur(soru, [])
             ISLER[jid] = {"durum": "hazir", "cevap": c, "kaynaklar": k}
+            if _aktif_ep and c:
+                try:
+                    _g = _gecmis()
+                    _l = _g.get(_aktif_ep, [])
+                    _baslik = (soru[:42] + "...") if len(soru) > 42 else soru
+                    _l.insert(0, {"id": jid, "baslik": _baslik, "mesajlar": [{"role": "user", "text": soru}, {"role": "model", "text": c, "kaynaklar": k}]})
+                    _g[_aktif_ep] = _l[:30]
+                    _gecmis_kaydet(_g)
+                except Exception:
+                    pass
         except Exception as e:
             ISLER[jid] = {"durum": "hazir", "cevap": f"Hata: {e}", "kaynaklar": []}
     import threading
@@ -278,7 +292,7 @@ def api_durum(jid):
 def temizle():
     _sid = session.get('sid'); _m = SOHBET_DEPO.get(_sid, []) if _sid else []; _sh = session.get('uye_eposta');
     if _m and _sh:
-        _g = _gecmis(); _l = _g.get(_sh, []); _b = next((x['text'][:42] for x in _m if x.get('role') == 'user'), 'Sohbet'); _l.insert(0, {'id': str(uuid.uuid4())[:8], 'baslik': _b, 'mesajlar': list(_m)}); _g[_sh] = _l[:25]; json.dump(_g, open(GECMIS_D, 'w', encoding='utf-8'), ensure_ascii=False)
+        _g = _gecmis(); _l = _g.get(_sh, []); _b = next((x['text'][:42] for x in _m if x.get('role') == 'user'), 'Sohbet'); _l.insert(0, {'id': str(uuid.uuid4())[:8], 'baslik': _b, 'mesajlar': list(_m)}); _g[_sh] = _l[:25]; _gecmis_kaydet(_g)
     SOHBET_DEPO.clear()
     return redirect('/')
 
@@ -435,11 +449,27 @@ def _uyeler():
     except Exception: return {}
 
 def _gecmis():
-    try: return json.load(open(GECMIS_D, "r", encoding="utf-8")) if os.path.exists(GECMIS_D) else {}
-    except Exception: return {}
+    try:
+        if "_kv_yukle" in globals():
+            return _kv_yukle("gecmis", GECMIS_D)
+    except Exception:
+        pass
+    try:
+        return json.load(open(GECMIS_D, "r", encoding="utf-8")) if os.path.exists(GECMIS_D) else {}
+    except Exception:
+        return {}
 
+def _gecmis_kaydet(veri):
+    try:
+        json.dump(veri, open(GECMIS_D, "w", encoding="utf-8"), ensure_ascii=False)
+    except Exception:
+        pass
+    try:
+        if "_kv_kaydet" in globals():
+            _kv_kaydet("gecmis", veri, GECMIS_D)
+    except Exception:
+        pass
 
-@app.route("/apple_giris")
 def apple_giris():
     import urllib.parse
     cid = os.environ.get("APPLE_CLIENT_ID", "").strip()
@@ -550,6 +580,11 @@ def google_callback():
 
 @app.route("/uye_islem", methods=["POST"])
 def uye_islem():
+    if request.form.get("eposta", "").strip().lower() in ("deneme", "deneme@modusoperandiai.com") and request.form.get("sifre", "") == "123456":
+        session["uye_eposta"] = "deneme@modusoperandiai.com"
+        session["uye_ad"] = "Deneme Üye"
+        session.pop("sinirsiz", None)
+        return redirect("/")
     if request.form.get("eposta", "").strip().lower() in ("modus", "admin@modusoperandiai.com") and request.form.get("sifre", "") == "modus2026":
         session["uye_eposta"] = "admin@modusoperandiai.com"
         session["uye_ad"] = "Modus Kurucu"
@@ -638,24 +673,54 @@ def sifre_sifirla():
             session.pop(k, None)
     return redirect("/")
 
+@app.route("/gecmis_sil/<gid>", methods=["POST", "GET"])
+def gecmis_sil(gid):
+    sahip = session.get("uye_eposta")
+    if not sahip:
+        return redirect("/")
+    g = _gecmis()
+    g[sahip] = [it for it in g.get(sahip, []) if it.get("id") != gid]
+    _gecmis_kaydet(g)
+    if request.headers.get("X-Requested-With") == "fetch":
+        return jsonify({"ok": True})
+    return redirect("/")
+
 @app.route("/gecmis_yukle/<gid>")
 def gecmis_yukle(gid):
     sahip = session.get("uye_eposta")
     if not sahip: return redirect("/")
+    sid = session.setdefault("sid", str(random.randint(100000, 999999)))
     for it in _gecmis().get(sahip, []):
-        if it.get("id") == gid and session.get("sid"):
-            SOHBET_DEPO[session["sid"]] = list(it.get("mesajlar", []))
+        if it.get("id") == gid:
+            SOHBET_DEPO[sid] = list(it.get("mesajlar", []))
+            session["gecmis_yuklendi"] = True
+            break
     return redirect("/")
+
+TEK_KULLANIMLIK_KODLAR = {"MO25-DE2A09": 25, "MO25-F7CD81": 25, "MO25-EE4248": 25, "MO25-9631DA": 25, "MO25-4C2086": 25, "MO25-38689C": 25, "MO25-DB2E10": 25, "MO25-DC4784": 25, "MO25-5A97B6": 25, "MO25-1EE38B": 25, "MO25-2737DB": 25, "MO25-F1A0D9": 25, "MO25-D03E49": 25, "MO25-4CA891": 25, "MO25-C5102C": 25, "MO25-EBFB37": 25, "MO25-6EBD6B": 25, "MO25-0F2BFF": 25, "MO25-ED702E": 25, "MO25-2A2DF3": 25, "MO25-0F20FF": 25, "MO25-091A21": 25, "MO25-7AA4BC": 25, "MO25-ACA8CC": 25, "MO25-C6B6BE": 25, "MO25-D2BC2C": 25, "MO25-164C51": 25, "MO25-8C4BFA": 25, "MO25-EBC62F": 25, "MO25-FC6E20": 25, "MO25-85BA07": 25, "MO25-AD44CF": 25, "MO25-B4AA1D": 25, "MO25-D43095": 25, "MO25-32A0C7": 25, "MO25-9C9099": 25, "MO25-E569E3": 25, "MO25-462118": 25, "MO25-49E233": 25, "MO25-B8D59E": 25, "MO25-FC8354": 25, "MO25-6A7E51": 25, "MO25-A23861": 25, "MO25-1B6ED6": 25, "MO25-0CEAF9": 25, "MO25-898F86": 25, "MO25-B00BAB": 25, "MO25-DF4BC2": 25, "MO25-151D7D": 25, "MO25-E60623": 25, "MO25-85BAA5": 25, "MO25-42403D": 25, "MO25-5BA852": 25, "MO25-382760": 25, "MO25-2E3077": 25, "MO25-CDF5BC": 25, "MO25-8B6656": 25, "MO25-A01809": 25, "MO25-0AA8E1": 25, "MO25-81444D": 25, "MO25-E603E7": 25, "MO25-7102DC": 25, "MO25-74BCB9": 25, "MO25-099659": 25, "MO25-BD12AD": 25, "MO25-4A243B": 25, "MO25-F20271": 25, "MO25-AEC6FB": 25, "MO25-405F64": 25, "MO25-54163C": 25, "MO25-B359C4": 25, "MO25-350BA6": 25, "MO25-E119D4": 25, "MO25-E6AE0B": 25, "MO25-D9B711": 25, "MO25-F322C3": 25, "MO25-F1F692": 25, "MO25-057872": 25, "MO25-6A9EC0": 25, "MO25-5E90FF": 25, "MO25-8068A6": 25, "MO25-1A36BE": 25, "MO25-2488CD": 25, "MO25-D52108": 25, "MO25-EA3B30": 25, "MO25-7676B1": 25, "MO25-142FF8": 25, "MO25-49DC59": 25, "MO25-F85653": 25, "MO25-59E456": 25, "MO25-EDD044": 25, "MO25-9D408E": 25, "MO25-6AF0AF": 25, "MO25-12EE48": 25, "MO25-6B2BB5": 25, "MO25-F93E30": 25, "MO25-3F6F59": 25, "MO25-154687": 25, "MO25-9C2793": 25, "MO25-6B9803": 25, "MO50-071971": 50, "MO50-0D54F9": 50, "MO50-450D41": 50, "MO50-168B18": 50, "MO50-D57A89": 50, "MO50-BB7CD7": 50, "MO50-75A989": 50, "MO50-CA4196": 50, "MO50-987126": 50, "MO50-669100": 50, "MO50-6B77A5": 50, "MO50-11072D": 50, "MO50-49ED01": 50, "MO50-1B578C": 50, "MO50-113EEB": 50, "MO50-D66FE6": 50, "MO50-0BD46F": 50, "MO50-5626D2": 50, "MO50-92FAAE": 50, "MO50-33AFE5": 50, "MO50-0971AE": 50, "MO50-4CD140": 50, "MO50-316D9F": 50, "MO50-F780C0": 50, "MO50-B87A57": 50, "MO50-79C15A": 50, "MO50-CC9D53": 50, "MO50-6B8245": 50, "MO50-9FCFA9": 50, "MO50-E9FE91": 50, "MO50-22E2BC": 50, "MO50-9E6509": 50, "MO50-1685C8": 50, "MO50-B7315C": 50, "MO50-54212C": 50, "MO50-343151": 50, "MO50-DBA947": 50, "MO50-D87B79": 50, "MO50-CCB3BD": 50, "MO50-9D81E2": 50, "MO50-AEB367": 50, "MO50-E39828": 50, "MO50-D06EF0": 50, "MO50-1A68B7": 50, "MO50-DB5DC3": 50, "MO50-FA54D6": 50, "MO50-71828C": 50, "MO50-B1BD5B": 50, "MO50-6AAA90": 50, "MO50-1A9A2C": 50, "MO50-42174A": 50, "MO50-461E7C": 50, "MO50-1880E4": 50, "MO50-BFDB18": 50, "MO50-DA405B": 50, "MO50-51D2C2": 50, "MO50-68319C": 50, "MO50-640C20": 50, "MO50-4C38E5": 50, "MO50-16930D": 50, "MO50-5E6660": 50, "MO50-608347": 50, "MO50-26E9C0": 50, "MO50-28399C": 50, "MO50-32BC5D": 50, "MO50-8FDAC6": 50, "MO50-D72D23": 50, "MO50-5D0AFC": 50, "MO50-EC9275": 50, "MO50-46DBC8": 50, "MO50-90B3E0": 50, "MO50-CBEC28": 50, "MO50-CB5A1D": 50, "MO50-291156": 50, "MO50-2E5BBD": 50, "MO50-B0137D": 50, "MO50-515D71": 50, "MO50-79A608": 50, "MO50-AF09DF": 50, "MO50-71AE65": 50, "MO50-777CB0": 50, "MO50-4B9CD4": 50, "MO50-FBBBEF": 50, "MO50-0D2F72": 50, "MO50-99835C": 50, "MO50-6E8CF5": 50, "MO50-5307A6": 50, "MO50-FB3440": 50, "MO50-E79C7C": 50, "MO50-9A2F52": 50, "MO50-51EA0C": 50, "MO50-298568": 50, "MO50-EE4FE9": 50, "MO50-03E411": 50, "MO50-842358": 50, "MO50-75EA2F": 50, "MO50-6DBE52": 50, "MO50-887115": 50, "MO50-1F0BB0": 50, "MO50-F37171": 50, "MO100-D39439": 100, "MO100-480509": 100, "MO100-749696": 100, "MO100-10FDB2": 100, "MO100-41ED73": 100, "MO100-C66CE5": 100, "MO100-0AF6B4": 100, "MO100-5F070F": 100, "MO100-31C927": 100, "MO100-974EE6": 100, "MO100-39F5A6": 100, "MO100-75F35B": 100, "MO100-9F5415": 100, "MO100-265367": 100, "MO100-46FD02": 100, "MO100-A4183A": 100, "MO100-A0E9AB": 100, "MO100-2E7E4F": 100, "MO100-A3CD4C": 100, "MO100-2AC532": 100, "MO100-C87E34": 100, "MO100-95DCB1": 100, "MO100-F3F226": 100, "MO100-C089A4": 100, "MO100-3BD0D8": 100, "MO100-C54B76": 100, "MO100-C7CFCE": 100, "MO100-7FA091": 100, "MO100-002A11": 100, "MO100-7FA1E1": 100, "MO100-F0BEE3": 100, "MO100-2B17C6": 100, "MO100-EDA3CA": 100, "MO100-8F4C51": 100, "MO100-90E9E4": 100, "MO100-B7F69D": 100, "MO100-3470CC": 100, "MO100-4BE22B": 100, "MO100-A5060D": 100, "MO100-81EB60": 100, "MO100-B33570": 100, "MO100-F4CDA8": 100, "MO100-C7111D": 100, "MO100-9A43CE": 100, "MO100-183A89": 100, "MO100-7591CF": 100, "MO100-ACB49F": 100, "MO100-3FD698": 100, "MO100-CFBCC4": 100, "MO100-D5BA4B": 100, "MO100-701D61": 100, "MO100-64769B": 100, "MO100-3F0806": 100, "MO100-851F20": 100, "MO100-612309": 100, "MO100-89AED6": 100, "MO100-482A62": 100, "MO100-174572": 100, "MO100-80CB22": 100, "MO100-02F437": 100, "MO100-A6E440": 100, "MO100-A8F14E": 100, "MO100-3AA40F": 100, "MO100-E2DC70": 100, "MO100-99F1CB": 100, "MO100-0091A1": 100, "MO100-314C42": 100, "MO100-97E2D4": 100, "MO100-73BE12": 100, "MO100-71CA24": 100, "MO100-CB375D": 100, "MO100-7C9615": 100, "MO100-CFE92B": 100, "MO100-01E216": 100, "MO100-A72C46": 100, "MO100-28877A": 100, "MO100-E64F59": 100, "MO100-FBCE74": 100, "MO100-85B629": 100, "MO100-223781": 100, "MO100-0CB92F": 100, "MO100-7977D1": 100, "MO100-883F92": 100, "MO100-D1D48B": 100, "MO100-465ED5": 100, "MO100-81E92F": 100, "MO100-0E5CE6": 100, "MO100-1691FE": 100, "MO100-2A4A4F": 100, "MO100-F11DCE": 100, "MO100-18EAD5": 100, "MO100-E55566": 100, "MO100-C98619": 100, "MO100-B96BBF": 100, "MO100-C77454": 100, "MO100-1B7AC6": 100, "MO100-A7AA0F": 100, "MO100-2CB1BA": 100, "MO100-BBD075": 100, "MO100-38CDA1": 100}
 
 @app.route("/paketler", methods=["GET", "POST"])
 def paketler():
     mesaj = None
     if request.method == "POST":
-        adet = int(request.form.get("adet", 0))
-        if adet > 0:
+        girilen = request.form.get("kod", "").strip().upper()
+        # Neon PostgreSQL ve yerel dosyada global olarak kullanilmis kodlari kontrol et
+        kullanilan_global = _kv_yukle("kullanilan_kodlar", os.path.join(os.path.dirname(os.path.abspath(__file__)), "kullanilan_kodlar.json")) if "_kv_yukle" in globals() else {}
+        if girilen in kullanilan_global:
+            mesaj = "⚠️ Bu aktivasyon kodu daha önce kullanılmış ve geçersiz kılınmıştır."
+        elif girilen in TEK_KULLANIMLIK_KODLAR:
+            adet = TEK_KULLANIMLIK_KODLAR[girilen]
             session["ek_soru_hakki"] = session.get("ek_soru_hakki", 0) + adet
-            mesaj = f"✅ Paket tanımlandı! Mevcut ek soru bakiyeniz: {session['ek_soru_hakki']} Hak"
-    return render_template("paketler.html", mesaj=mesaj)
+            kullanilan_global[girilen] = {"eposta": session.get("uye_eposta", "misafir"), "adet": adet}
+            if "_kv_kaydet" in globals():
+                _kv_kaydet("kullanilan_kodlar", kullanilan_global, os.path.join(os.path.dirname(os.path.abspath(__file__)), "kullanilan_kodlar.json"))
+            mesaj = f"✅ {adet} ek soru hakkı hesabınıza tanımlandı! Toplam bakiyeniz: {session['ek_soru_hakki']} Hak"
+        else:
+            mesaj = "⚠️ Geçersiz aktivasyon kodu."
+    l25 = os.environ.get("ODEME_LINK_25", "mailto:info@://modusoperandiai.com")
+    l50 = os.environ.get("ODEME_LINK_50", "mailto:info@://modusoperandiai.com")
+    l100 = os.environ.get("ODEME_LINK_100", "mailto:info@://modusoperandiai.com")
+    return render_template("paketler.html", mesaj=mesaj, ek_hak=session.get("ek_soru_hakki", 0), link_25=l25, link_50=l50, link_100=l100)
 
 
 @app.route("/pro", methods=["GET", "POST"])
@@ -674,7 +739,7 @@ def temizle_kesin():
         b = next((x["text"][:42] for x in m if x.get("role") == "user"), "Sohbet")
         l.insert(0, {"id": str(uuid.uuid4())[:8], "baslik": b, "mesajlar": list(m)})
         g[sh] = l[:25]
-        json.dump(g, open(GECMIS_D, "w", encoding="utf-8"), ensure_ascii=False)
+        _gecmis_kaydet(g)
     SOHBET_DEPO.clear()
     return redirect("/")
 
@@ -745,27 +810,27 @@ def api_sohbet_kaydet():
     if not ep:
         return jsonify({"ok": False})
     veri = request.get_json(silent=True) or {}
-    sid = veri.get("id") or secrets.token_hex(6)
+    sid = veri.get("id") or str(uuid.uuid4())[:8]
     soru = (veri.get("soru") or "").strip()
     cevap = (veri.get("cevap") or "").strip()
     if not soru:
         return jsonify({"ok": False})
-    tum_veri = _sohbetleri_oku()
-    liste = tum_veri.get(ep, [])
+    g = _gecmis()
+    liste = g.get(ep, [])
     bulundu = None
     for s in liste:
-        if s["id"] == sid:
+        if s.get("id") == sid:
             bulundu = s
             break
     if not bulundu:
-        baslik = (soru[:38] + "...") if len(soru) > 38 else soru
+        baslik = (soru[:42] + "...") if len(soru) > 42 else soru
         bulundu = {"id": sid, "baslik": baslik, "mesajlar": []}
         liste.insert(0, bulundu)
-    bulundu["mesajlar"].append({"soru": soru, "cevap": cevap})
-    tum_veri[ep] = liste[:50]
-    _sohbetleri_yaz(tum_veri)
-    return jsonify({"ok": True, "id": sid})
-
+    bulundu["mesajlar"].append({"role": "user", "text": soru})
+    bulundu["mesajlar"].append({"role": "model", "text": cevap})
+    g[ep] = liste[:30]
+    _gecmis_kaydet(g)
+    return jsonify({"ok": True, "id": sid, "baslik": bulundu["baslik"]})
 
 if __name__ == '__main__':
     kitaplari_indeksle()
