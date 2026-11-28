@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ek Soru Hakkı Paketleri — Modus Operandi</title>
+<style>
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#faf8f5;color:#1a1815;line-height:1.5}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #e5e5e0;background:#fff}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#1a1815;font-weight:700;font-size:16px}
+  .logo{width:34px;height:30px;border-radius:8px;background:#1a1917;color:#fff;display:flex;align-items:baseline;justify-content:center;padding-top:5px;font-weight:800;font-size:13px}
+  .back-btn{padding:8px 14px;border:1px solid #e5e5e0;border-radius:9px;text-decoration:none;color:#2c2219;font-size:13px;font-weight:600;background:#fff}
+  .wrap{max-width:920px;margin:36px auto;padding:0 20px}
+  .hero{text-align:center;margin-bottom:32px}
+  .hero h1{font-size:28px;margin:0 0 8px;color:#1a1815}
+  .hero p{color:#6e6a63;font-size:15px;margin:0}
+  .bakiye{display:inline-block;margin-top:12px;padding:6px 14px;background:#f3efe8;border:1px solid #e2d9c8;border-radius:20px;font-size:13px;font-weight:600;color:#6e5a38}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin-bottom:32px}
+  .card{background:#fff;border:1px solid #e5e5e0;border-radius:16px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 16px rgba(0,0,0,.03)}
+  .card.pop{border:2px solid #996e17;position:relative}
+  .badge{position:absolute;top:-11px;right:18px;background:#996e17;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px}
+  .pkg-title{font-size:18px;font-weight:700;color:#2c2219;margin:0 0 6px}
+  .pkg-count{font-size:32px;font-weight:800;color:#1a1815;margin:8px 0}
+  .pkg-price{font-size:15px;font-weight:600;color:#996e17;margin-bottom:14px}
+  .pkg-desc{font-size:13.5px;color:#5c5852;margin-bottom:20px}
+  .buy-btn{display:block;text-align:center;padding:11px;background:#2c2219;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;border:none;cursor:pointer;width:100%}
+  .card.pop .buy-btn{background:#996e17}
+  .code-box{background:#fff;border:1px solid #e5e5e0;border-radius:16px;padding:22px;max-width:520px;margin:0 auto;text-align:center}
+  .code-box h3{margin:0 0 6px;font-size:16px;color:#2c2219}
+  .code-box p{margin:0 0 14px;font-size:13px;color:#6e6a63}
+  .code-form{display:flex;gap:8px;justify-content:center}
+  .code-inp{flex:1;padding:10px 12px;border:1px solid #dcdbd5;border-radius:9px;font-size:14px;text-transform:uppercase}
+  .code-sub{padding:10px 18px;background:#2c2219;color:#fff;border:none;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer}
+  .msg{max-width:520px;margin:0 auto 20px;padding:12px 16px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:14px;font-weight:600;text-align:center}
+  .msg.err{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" class="brand"><div class="logo">MO</div><span>Modus Operandi</span></a>
+  <a href="/" class="back-btn">← Sohbete Dön</a>
+</div>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Ek Soru Hakkı Paketleri</h1>
+    <p>Günlük 5 ücretsiz soru hakkınıza ek olarak, süre sınırı olmadan kullanabileceğiniz ek soru paketleri.</p>
+    <div class="bakiye">Mevcut Ek Soru Bakiyeniz: <b>{{ ek_hak }} Hak</b></div>
+  </div>
+
+  {% if mesaj %}
+  <div class="msg {{ 'err' if '⚠️' in mesaj else '' }}">{{ mesaj }}</div>
+  {% endif %}
+
+  <div class="grid">
+    <div class="card">
+      <div>
+        <div class="pkg-title">Başlangıç Paketi</div>
+        <div class="pkg-count">+25 Soru</div>
+        <div class="pkg-price">$5</div>
+        <div class="pkg-desc">Günlük limitiniz dolduğunda devreye girer, kalan haklarınız hiçbir zaman silinmez.</div>
+      </div>
+      <a href="{{ link_25 }}" target="_blank" class="buy-btn">Güvenli Ödeme ile Satın Al</a>
+    </div>
+
+    <div class="card pop">
+      <div class="badge">EN ÇOK TERCİH EDİLEN</div>
+      <div>
+        <div class="pkg-title">Usta Fırıncı Paketi</div>
+        <div class="pkg-count">+50 Soru</div>
+        <div class="pkg-price">$9</div>
+        <div class="pkg-desc">Yoğun Ar-Ge, reçete geliştirme ve akademik kaynak taramaları için idealdir.</div>
+      </div>
+      <a href="{{ link_50 }}" target="_blank" class="buy-btn">Güvenli Ödeme ile Satın Al</a>
+    </div>
+
+    <div class="card">
+      <div>
+        <div class="pkg-title">Atölye & Akademi</div>
+        <div class="pkg-count">+100 Soru</div>
+        <div class="pkg-price">$16</div>
+        <div class="pkg-desc">Profesyonel mutfaklar ve sürekli teknik danışmanlık ihtiyaçları için.</div>
+      </div>
+      <a href="{{ link_100 }}" target="_blank" class="buy-btn">Güvenli Ödeme ile Satın Al</a>
+    </div>
+  </div>
+
+  <div class="code-box">
+    <h3>Aktivasyon Kodunuz Var mı?</h3>
+    <p>Ödeme sonrası otomatik iletilen paket kodunu girerek haklarınızı anında hesabınıza tanımlayın.</p>
+    <form method="POST" action="/paketler" class="code-form">
+      <input type="text" name="kod" class="code-inp" placeholder="Örn: MODUS25" required>
+      <button type="submit" class="code-sub">Kodu Uygula</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>
