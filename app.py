@@ -708,8 +708,9 @@ def paketler():
         kullanilan_global = _kv_yukle("kullanilan_kodlar", os.path.join(os.path.dirname(os.path.abspath(__file__)), "kullanilan_kodlar.json")) if "_kv_yukle" in globals() else {}
         if girilen in kullanilan_global:
             mesaj = "⚠️ Bu aktivasyon kodu daha önce kullanılmış ve geçersiz kılınmıştır."
-        elif girilen in TEK_KULLANIMLIK_KODLAR:
-            adet = TEK_KULLANIMLIK_KODLAR[girilen]
+        elif girilen in TEK_KULLANIMLIK_KODLAR or girilen in (_kv_yukle("dinamik_kodlar", os.path.join(os.path.dirname(os.path.abspath(__file__)), "dinamik_kodlar.json")) if "_kv_yukle" in globals() else {}):
+            _din = _kv_yukle("dinamik_kodlar", os.path.join(os.path.dirname(os.path.abspath(__file__)), "dinamik_kodlar.json")) if "_kv_yukle" in globals() else {}
+            adet = TEK_KULLANIMLIK_KODLAR.get(girilen) or _din.get(girilen)
             session["ek_soru_hakki"] = session.get("ek_soru_hakki", 0) + adet
             kullanilan_global[girilen] = {"eposta": session.get("uye_eposta", "misafir"), "adet": adet}
             if "_kv_kaydet" in globals():
@@ -751,6 +752,15 @@ def gizlilik():
 
 @app.route("/uyeler_yonetim")
 def uyeler_yonetim():
+    uretilen_kod = ""
+    if request.args.get("uret") in ("25", "50", "100"):
+        _adet = int(request.args.get("uret"))
+        uretilen_kod = f"MO{_adet}-{secrets.token_hex(4).upper()}"
+        _din_yol = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dinamik_kodlar.json")
+        _din = _kv_yukle("dinamik_kodlar", _din_yol) if "_kv_yukle" in globals() else {}
+        _din[uretilen_kod] = _adet
+        if "_kv_kaydet" in globals():
+            _kv_kaydet("dinamik_kodlar", _din, _din_yol)
     db_durum = "✅ Neon PostgreSQL Bağlı (Kalıcı)" if _pg_baglan() else f"⚠️ Bağlanamadı: {_SON_DB_HATA}"
     mail_durum = "✅ Resend Aktif" if os.environ.get("RESEND_API_KEY", "").strip() else "⚠️ RESEND_API_KEY bekleniyor"
     anahtar = os.environ.get("ADMIN_KEY", "modus2026").strip()
@@ -766,7 +776,13 @@ def uyeler_yonetim():
     rows = "".join([f"<tr><td>{i+1}</td><td>{d.get('ad','')}</td><td>{d.get('kullanici_adi','')}</td><td>{ep}</td></tr>" for i, (ep, d) in enumerate(u.items())])
     return f"""<html><head><meta charset='utf-8'><title>Modus Operandi ai — Üyeler</title>
     <style>body{{font-family:sans-serif;background:#faf8f5;padding:30px;color:#1a1815}}table{{width:100%;border-collapse:collapse;background:#fff;margin-top:16px}}th,td{{border:1px solid #e5e0d8;padding:10px;text-align:left}}th{{background:#f3efe8}}.btn{{display:inline-block;padding:10px 16px;background:#b48228;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}}</style></head>
-    <body><div style='background:#fff;border:1px solid #e5e0d8;padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:13.5px'><b>Veritabanı Durumu:</b> {db_durum} &nbsp;|&nbsp; <b>E-posta Sistemi:</b> {mail_durum}</div><h2>Kayıtlı Üyeler ({len(u)} Kişi)</h2><a class='btn' href='?key={anahtar}&indir=csv'>Excel / CSV İndir</a>
+    <body><div style='background:#fff;border:1px solid #e5e0d8;padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:13.5px'><b>Veritabanı Durumu:</b> {db_durum} &nbsp;|&nbsp; <b>E-posta Sistemi:</b> {mail_durum}</div><div style='background:#fff;border:1px solid #e5e0d8;padding:14px;border-radius:10px;margin-bottom:16px'>
+    <b>Tek Kullanımlık Aktivasyon Kodu Üret (Her Tıklamada Yeni Benzersiz Kod):</b><br><br>
+    <a class='btn' href='?key={anahtar}&uret=25'>+25 Soru Kodu Üret</a> &nbsp;
+    <a class='btn' href='?key={anahtar}&uret=50'>+50 Soru Kodu Üret</a> &nbsp;
+    <a class='btn' href='?key={anahtar}&uret=100'>+100 Soru Kodu Üret</a>
+    {f"<div style='margin-top:12px;padding:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:15px'>✅ Yeni Kod Hazır: <b style='letter-spacing:1px'>{uretilen_kod}</b></div>" if uretilen_kod else ""}
+    </div><h2>Kayıtlı Üyeler ({len(u)} Kişi)</h2><a class='btn' href='?key={anahtar}&indir=csv'>Excel / CSV İndir</a>
     <table><tr><th>#</th><th>Ad Soyad</th><th>Kullanıcı Adı</th><th>E-posta</th></tr>{rows}</table></body></html>"""
 
 
